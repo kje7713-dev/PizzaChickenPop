@@ -43,6 +43,8 @@ Tech:
 
 ## Secrets You Must Add (GitHub → Settings → Secrets and variables → Actions)
 
+> 📖 **For detailed step-by-step instructions on setting up all secrets, see [SECRETS_SETUP.md](SECRETS_SETUP.md)**
+
 ### Minimal manual signing (recommended to start)
 
 Create these repository secrets:
