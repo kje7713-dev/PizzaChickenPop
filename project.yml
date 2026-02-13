@@ -1,0 +1,53 @@
+name: PizzaChicken
+
+options:
+  bundleIdPrefix: com.kje7713
+  deploymentTarget:
+    iOS: "15.0"
+  developmentLanguage: en
+
+settings:
+  base:
+    PRODUCT_NAME: PizzaChicken
+    PRODUCT_BUNDLE_IDENTIFIER: com.kje7713.PizzaChicken
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: ${APPLE_TEAM_ID}
+    CODE_SIGN_STYLE: Manual
+    ENABLE_BITCODE: NO
+    TARGETED_DEVICE_FAMILY: "1,2"
+
+targets:
+  PizzaChicken:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - Sources
+    resources:
+      - Resources
+    settings:
+      base:
+        INFOPLIST_FILE: Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.kje7713.PizzaChicken
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_IDENTITY: "Apple Distribution"
+        CODE_SIGN_STYLE: Manual
+        PROVISIONING_PROFILE_SPECIFIER: match AppStore com.kje7713.PizzaChicken
+        DEVELOPMENT_TEAM: ${APPLE_TEAM_ID}
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
+      environmentVariables: []
+
+schemes:
+  PizzaChicken:
+    build:
+      targets:
+        PizzaChicken: all
+    run:
+      config: Debug
+    archive:
+      config: Release
