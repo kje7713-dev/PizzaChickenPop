@@ -18,6 +18,10 @@ DerivedData/
 *.xcscmblueprint
 *.xcworkspace/xcshareddata
 
+# XcodeGen - Ignore generated project files
+*.xcodeproj
+*.xcworkspace
+
 # CocoaPods
 Pods/
 
@@ -29,6 +33,14 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
+fastlane/AuthKey.p8
+
+# Match
+fastlane/certs/
+fastlane/profiles/
+
+# CI logs
+ci_logs/
 
 # Ruby/Bundler
 vendor/bundle
@@ -41,3 +53,7 @@ Package.resolved
 
 # macOS
 .DS_Store
+
+# Backup files
+*.old
+*.backup

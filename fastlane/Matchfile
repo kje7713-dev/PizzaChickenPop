@@ -1,0 +1,19 @@
+git_url(ENV["MATCH_GIT_URL"])
+storage_mode("git")
+type("appstore")
+app_identifier(["com.kje7713.PizzaChicken"])
+username(ENV["APPLE_ID"])
+team_id(ENV["APPLE_TEAM_ID"])
+
+# Git branch to use (default is 'master')
+git_branch("main")
+
+# Set to true in CI environments to prevent creation of new certificates
+readonly(is_ci)
+
+# Skip confirmation prompts in CI
+skip_confirmation(is_ci)
+
+# Keychain to use for certificates in CI
+keychain_name("ci_keychain")
+keychain_password(ENV.fetch("MATCH_PASSWORD", ""))

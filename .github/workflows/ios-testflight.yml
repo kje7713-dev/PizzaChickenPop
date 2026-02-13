@@ -1,0 +1,141 @@
+name: iOS TestFlight Deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build and Deploy to TestFlight
+    runs-on: macos-14
+    timeout-minutes: 45
+    
+    env:
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APP_IDENTIFIER: ${{ secrets.APP_IDENTIFIER }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_GIT_TOKEN: ${{ secrets.MATCH_GIT_TOKEN }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      IOS_SCHEME: ${{ secrets.IOS_SCHEME }}
+      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: 180
+      FASTLANE_XCODE_LIST_TIMEOUT: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: List available Xcode versions
+        run: ls /Applications | grep Xcode
+
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: |
+          echo "Installing XcodeGen..."
+          brew install xcodegen
+          echo "Installing Ruby gems..."
+          bundle install
+
+      - name: Generate Xcode project
+        run: |
+          echo "Generating Xcode project from project.yml..."
+          xcodegen generate
+          echo "✅ Xcode project generated successfully"
+          ls -la *.xcodeproj
+
+      - name: Prepare App Store Connect API Key
+        env:
+          ASC_KEY: ${{ secrets.ASC_KEY }}
+        run: |
+          set -euo pipefail
+          
+          echo "Preparing App Store Connect API Key..."
+          KEY_FILE="fastlane/AuthKey.p8"
+          
+          # Decode the key (handles both base64 and raw PEM)
+          if echo "$ASC_KEY" | grep -q "BEGIN PRIVATE KEY"; then
+            # Raw PEM format
+            echo "$ASC_KEY" > "$KEY_FILE"
+          else
+            # Base64 encoded
+            echo "$ASC_KEY" | base64 --decode > "$KEY_FILE"
+          fi
+          
+          # Validate the key
+          if openssl pkey -in "$KEY_FILE" -pubout >/dev/null 2>&1; then
+            echo "✅ API Key is valid"
+          else
+            echo "❌ Invalid API Key format"
+            exit 1
+          fi
+          
+          # Verify it's an EC P-256 key
+          if openssl pkey -in "$KEY_FILE" -text -noout | grep -q "prime256v1"; then
+            echo "✅ Key is EC P-256 (prime256v1)"
+          else
+            echo "⚠️  Warning: Key may not be EC P-256"
+          fi
+
+      - name: Create build logs directory
+        run: mkdir -p ci_logs
+
+      - name: Build & Upload to TestFlight
+        id: build
+        run: |
+          set -euo pipefail
+          
+          echo "Starting Fastlane beta lane..."
+          echo "Scheme: ${IOS_SCHEME}"
+          echo "Bundle ID: ${APP_IDENTIFIER}"
+          
+          # Run fastlane with logging
+          bundle exec fastlane beta 2>&1 | tee ci_logs/fastlane.log
+          
+          echo "✅ Build and upload completed successfully"
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-artifacts
+          path: |
+            build/PizzaChicken.ipa
+            build/PizzaChicken.app.dSYM.zip
+            ci_logs/
+          retention-days: 30
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-logs
+          path: |
+            ci_logs/
+            ~/Library/Logs/gym/
+          retention-days: 14
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "❌ Build failed. Showing last 200 lines of logs:"
+          if [ -f ci_logs/fastlane.log ]; then
+            tail -n 200 ci_logs/fastlane.log
+          fi
+          
+          echo ""
+          echo "Check the uploaded artifacts for full logs:"
+          echo "- ios-build-logs artifact contains detailed error logs"
+          echo "- Review the workflow run for specific error messages"

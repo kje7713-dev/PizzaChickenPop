@@ -1,7 +1,81 @@
 default_platform(:ios)
 
 platform :ios do
-  desc "Upload IPA to TestFlight"
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    # Setup App Store Connect API Key for authentication
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: "fastlane/AuthKey.p8"
+    )
+
+    # Create CI keychain for code signing
+    create_keychain(
+      name: "ci_keychain",
+      password: ENV["MATCH_PASSWORD"],
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
+    )
+
+    # Fetch certificates and provisioning profiles from Match
+    match(
+      type: "appstore",
+      readonly: is_ci,
+      keychain_name: "ci_keychain",
+      keychain_password: ENV["MATCH_PASSWORD"],
+      git_basic_authorization: Base64.strict_encode64(ENV["MATCH_GIT_TOKEN"]),
+      app_identifier: ENV["APP_IDENTIFIER"]
+    )
+
+    # Set build number to timestamp for uniqueness
+    build_number = Time.now.strftime("%Y%m%d%H%M%S")
+    increment_build_number(
+      build_number: build_number,
+      xcodeproj: "PizzaChicken.xcodeproj"
+    )
+
+    # Build the app
+    gym(
+      scheme: ENV["IOS_SCHEME"],
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          ENV["APP_IDENTIFIER"] => "match AppStore #{ENV["APP_IDENTIFIER"]}"
+        }
+      },
+      output_directory: "./build",
+      output_name: "PizzaChicken.ipa",
+      clean: true,
+      export_xcargs: "-allowProvisioningUpdates"
+    )
+
+    # Upload to TestFlight
+    begin
+      upload_to_testflight(
+        api_key: api_key,
+        skip_waiting_for_build_processing: true,
+        distribute_external: false
+      )
+      UI.success("✅ Successfully uploaded to TestFlight!")
+    rescue => ex
+      # Handle agreement errors gracefully
+      if ex.message.include?("agreement") || ex.message.include?("must accept")
+        UI.important("⚠️  Build uploaded but TestFlight agreement needs acceptance")
+        UI.important("Please log into App Store Connect and accept any pending agreements")
+      else
+        UI.error("❌ TestFlight upload failed: #{ex.message}")
+        raise ex
+      end
+    end
+  ensure
+    # Cleanup: Delete CI keychain
+    delete_keychain(name: "ci_keychain") if is_ci
+  end
+
+  desc "Upload existing IPA to TestFlight (legacy support)"
   lane :testflight do
     api_key = app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
