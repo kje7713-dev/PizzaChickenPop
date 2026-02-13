@@ -11,6 +11,10 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 45
     
+    permissions:
+      contents: read
+      actions: read
+    
     env:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
