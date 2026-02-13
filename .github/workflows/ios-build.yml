@@ -5,7 +5,14 @@ name: iOS Build (IPA) - DEPRECATED
 # See Transfers/ folder for complete pipeline documentation.
 
 on:
+  # Disabled - workflow kept for reference only
+  # To use the new pipeline, run ios-testflight.yml workflow instead
   workflow_dispatch:
+    inputs:
+      deprecation_warning:
+        description: '⚠️ This workflow is deprecated. Use ios-testflight.yml instead.'
+        required: false
+        default: 'acknowledged'
 
 jobs:
   build:
@@ -23,6 +30,32 @@ jobs:
       EXPORT_PATH: ${{ github.workspace }}/build/export
 
     steps:
+      - name: ⚠️ Deprecation Warning
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "⚠️  WARNING: This workflow is DEPRECATED"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "This workflow uses manual signing and is no longer maintained."
+          echo ""
+          echo "Please use the new pipeline instead:"
+          echo "  → .github/workflows/ios-testflight.yml"
+          echo ""
+          echo "The new pipeline provides:"
+          echo "  ✅ XcodeGen project generation"
+          echo "  ✅ Fastlane Match automated code signing"
+          echo "  ✅ Better error handling and logging"
+          echo "  ✅ Team-wide certificate sharing"
+          echo ""
+          echo "Documentation:"
+          echo "  → README.md"
+          echo "  → MIGRATION_GUIDE.md"
+          echo "  → Transfers/ folder"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          sleep 5
+
       - name: Checkout
         uses: actions/checkout@v4
 
