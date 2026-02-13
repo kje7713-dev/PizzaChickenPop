@@ -1,3 +1,20 @@
+# Secrets Setup Guide (DEPRECATED - Legacy Manual Signing)
+
+> ⚠️ **DEPRECATED:** This guide documents the legacy manual signing approach and is kept for reference only.
+> 
+> **For new setups, use the modern XcodeGen + Fastlane Match pipeline instead:**
+> - See [Transfers/QUICK_START_PIPELINE.md](Transfers/QUICK_START_PIPELINE.md) for quick setup
+> - See [Transfers/PIPELINE_SETUP_GUIDE.md](Transfers/PIPELINE_SETUP_GUIDE.md) for complete guide
+> - See [GITHUB_SECRETS_LIST.md](GITHUB_SECRETS_LIST.md) for required secrets
+> 
+> The new approach provides:
+> - ✅ Automated code signing with Fastlane Match
+> - ✅ Project generation with XcodeGen
+> - ✅ Team-wide certificate sharing
+> - ✅ No manual certificate/profile management
+
+---
+
 # Secrets Setup Guide for Pipeline Integration
 
 This document provides detailed, step-by-step instructions for manually setting up all the secrets required for the GitHub Actions CI/CD pipeline in the PizzaChickenPop repository.

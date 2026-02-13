@@ -1,9 +1,11 @@
-name: iOS Build (IPA)
+name: iOS Build (IPA) - DEPRECATED
+
+# ⚠️ DEPRECATED: This workflow uses manual signing and is kept for reference only.
+# Use ios-testflight.yml instead, which uses XcodeGen and Fastlane Match.
+# See Transfers/ folder for complete pipeline documentation.
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "main" ]
 
 jobs:
   build:
