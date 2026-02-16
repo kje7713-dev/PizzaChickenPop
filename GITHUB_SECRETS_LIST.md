@@ -15,6 +15,7 @@ This document lists all GitHub Actions secrets required for the CI/CD pipeline u
 | `MATCH_GIT_URL` | Git repository URL for certificates | HTTPS URL | Your private certificates repo URL |
 | `MATCH_GIT_TOKEN` | GitHub Personal Access Token | `ghp_` prefixed token | GitHub Settings → Developer settings → Tokens |
 | `MATCH_PASSWORD` | Encryption password for Match | Any secure password | Create and store securely |
+| `MATCH_READONLY` | Control if Match is in readonly mode | `true` or `false` | Optional: Set to `false` to bootstrap certificates |
 | `IOS_SCHEME` | Xcode scheme name | Plain text | `PizzaChicken` |
 
 ## Secret Value Examples
@@ -75,6 +76,12 @@ ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 YourSecurePassword123!
 ```
 *(Any strong password - store in password manager)*
+
+### MATCH_READONLY
+```
+true
+```
+*(Optional: Defaults to "true" if not set. Set to "false" to allow Match to create new certificates/profiles)*
 
 ### IOS_SCHEME
 ```
