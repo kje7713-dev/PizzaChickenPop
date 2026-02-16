@@ -1,18 +1,17 @@
 git_url(ENV["MATCH_GIT_URL"])
 storage_mode("git")
 type("appstore")
-app_identifier(["com.Savagebydesign.PizzaChicken"])
+# Use the secret bundle id, not a hardcoded one
+app_identifier([ENV["APP_IDENTIFIER"]])
 username(ENV["APPLE_ID"])
 team_id(ENV["APPLE_TEAM_ID"])
 
 # Git branch to use (default is 'master')
 git_branch("main")
 
-# Set to true in CI environments to prevent creation of new certificates
-readonly(is_ci)
-
-# Skip confirmation prompts in CI
-skip_confirmation(is_ci)
+# CI-safe defaults
+readonly(true)
+skip_confirmation(true)
 
 # Keychain to use for certificates in CI
 keychain_name("ci_keychain")
