@@ -3,6 +3,9 @@ default_platform(:ios)
 platform :ios do
   desc "Build and upload to TestFlight"
   lane :beta do
+    # Check if running in CI environment
+    ci_environment = is_ci
+    
     # Setup App Store Connect API Key for authentication
     api_key = app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
@@ -23,7 +26,7 @@ platform :ios do
     # Fetch certificates and provisioning profiles from Match
     match(
       type: "appstore",
-      readonly: is_ci,
+      readonly: ci_environment,
       keychain_name: "ci_keychain",
       keychain_password: ENV["MATCH_PASSWORD"],
       git_basic_authorization: Base64.strict_encode64("x-access-token:#{ENV['MATCH_GIT_TOKEN']}"),
@@ -72,6 +75,6 @@ platform :ios do
     end
   ensure
     # Cleanup: Delete CI keychain
-    delete_keychain(name: "ci_keychain") if is_ci
+    delete_keychain(name: "ci_keychain") if ci_environment
   end
 end
