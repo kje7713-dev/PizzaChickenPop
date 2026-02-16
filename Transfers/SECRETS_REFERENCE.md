@@ -98,6 +98,46 @@ WorkoutTrackerApp
 
 ---
 
+## Optional Environment Variables
+
+These environment variables can be set in workflow files to control pipeline behavior.
+
+| Variable Name | Description | Default Value | When to Use |
+|--------------|-------------|---------------|-------------|
+| `MATCH_READONLY` | Controls whether Match can create certificates/profiles | `"true"` | Set to `"false"` for initial bootstrap |
+
+### MATCH_READONLY
+
+**Purpose**: Controls whether Fastlane Match operates in readonly mode.
+
+**Default**: `"true"` (readonly mode enabled)
+
+**When to set to `"false"`**:
+- First-time setup when no certificates exist
+- When you need Match to create new distribution certificates
+- When you need Match to create new provisioning profiles
+
+**Usage in GitHub Actions**:
+```yaml
+env:
+  MATCH_READONLY: "false"  # Allows Match to create certificates
+```
+
+**After bootstrap**:
+Once Match has created the necessary certificates and profiles and committed them to your certificate repository, change back to `"true"` (or remove the env variable to use the default):
+```yaml
+env:
+  MATCH_READONLY: "true"  # Default: readonly mode
+```
+
+**Important Notes**:
+- Only one team member should run with `MATCH_READONLY=false` at a time
+- After running with `false`, verify certificates were committed to your Match repository
+- For normal CI builds, always use `true` (readonly mode)
+- The value must be a string: `"true"` or `"false"` (in quotes)
+
+---
+
 ## How to Create Required Items
 
 ### 1. App Store Connect API Key

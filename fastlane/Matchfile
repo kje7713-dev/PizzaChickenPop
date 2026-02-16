@@ -10,7 +10,10 @@ team_id(ENV["APPLE_TEAM_ID"])
 git_branch("main")
 
 # CI-safe defaults
-readonly(true)
+# Allow overriding readonly mode via MATCH_READONLY env var (defaults to "true")
+# Set MATCH_READONLY=false to bootstrap certificates and provisioning profiles
+readonly_mode = (ENV["MATCH_READONLY"] || "true") == "true"
+readonly(readonly_mode)
 skip_confirmation(true)
 
 # Keychain to use for certificates in CI

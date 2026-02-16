@@ -67,6 +67,12 @@ XcodeGen → Xcode Project → Fastlane Match → Code Signing → Build → Tes
    bundle install
    bundle exec fastlane match appstore
    ```
+   
+   **Or** run the GitHub Actions workflow with `MATCH_READONLY=false` to bootstrap:
+   - Manually trigger the workflow
+   - Set environment variable: `MATCH_READONLY: "false"` in the workflow
+   - After successful run, remove or set back to `"true"`
+   - See [SECRETS_REFERENCE.md](Transfers/SECRETS_REFERENCE.md) for details
 
 3. **Generate Xcode Project**:
    ```bash
