@@ -4,7 +4,59 @@
 **Workflow**: iOS TestFlight Deployment  
 **Status**: ✅ Resolved
 
-## Latest Issue (Run #22078378428)
+## Latest Issue (Run #22078666400)
+
+### Error Summary
+- **Run ID**: 22078666400
+- **Workflow**: iOS TestFlight Deployment
+- **Date**: 2026-02-16 21:58:59Z
+- **Conclusion**: Failure
+- **Error Message**: `xcodebuild: error: Unable to read project 'PizzaChicken.xcodeproj'. Reason: The project 'PizzaChicken' cannot be opened because it is in a future Xcode project file format (77). Adjust the project format using a compatible version of Xcode to allow it to be opened by this version of Xcode.`
+
+### Root Cause
+The GitHub Actions workflow was configured to use Xcode 15.4, but XcodeGen (installed via Homebrew) generates Xcode projects in the newer Xcode 16+ format (objectVersion 77). This format includes features like "Buildable Folders" that are not backward compatible with Xcode 15.x.
+
+When XcodeGen runs on the CI environment, it generates a project file in the format that matches the latest installed XcodeGen version, which supports Xcode 16 features. However, the workflow explicitly selected Xcode 15.4, creating a mismatch.
+
+### Technical Details
+- **Xcode 16 Project Format**: Version 77 introduced breaking changes including Buildable Folders
+- **Xcode 15.4 Compatibility**: Can only open projects up to format version ~60
+- **XcodeGen Behavior**: Generates projects in the latest format supported by the tool version
+- **Error Location**: During the `gym` (build) step when xcodebuild attempts to open the generated project
+
+### Solution
+Updated both iOS workflow files to use Xcode 16.2, which is already available on the macos-14 GitHub Actions runner:
+
+1. **ios-testflight.yml**: Changed from Xcode 15.4 to Xcode 16.2
+2. **ios-build.yml**: Changed from Xcode 15.4 to Xcode 16.2 (for consistency)
+
+This allows the workflow to:
+- Use XcodeGen's latest features
+- Open and build projects in the newer format
+- Maintain compatibility with modern Xcode tooling
+
+### Files Modified
+- `.github/workflows/ios-testflight.yml` - Updated Xcode version from 15.4 to 16.2
+- `.github/workflows/ios-build.yml` - Updated Xcode version from 15.4 to 16.2
+
+### Alternative Solutions Considered
+1. **Downgrade XcodeGen**: Pin to an older version that generates Xcode 15-compatible projects
+   - ❌ Not recommended: Loses access to modern features and bug fixes
+   
+2. **Manual Format Conversion**: Edit `project.pbxproj` to change objectVersion
+   - ❌ Not recommended: Error-prone and doesn't work with Buildable Folders
+   
+3. **Upgrade to Xcode 16**: Use the latest Xcode version available on the runner
+   - ✅ **Selected**: Best long-term solution, aligns with modern tooling
+
+### References
+- [Xcode 16 Buildable Folders and Compatibility Issues](https://blog.supereasyapps.com/xcode-16-buildable-folders-break-xcode-15-backwards-compatibility/)
+- [XcodeGen Project Format Discussion](https://github.com/yonaskolb/XcodeGen/issues/1505)
+- [GitHub Actions macos-14 Runner Images](https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md)
+
+---
+
+## Previous Issue (Run #22078378428)
 
 ### Error Summary
 - **Run ID**: 22078378428
