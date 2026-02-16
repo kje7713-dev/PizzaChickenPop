@@ -28,6 +28,7 @@ targets:
       - Sources
     resources:
       - Resources
+      - Assets.xcassets
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
