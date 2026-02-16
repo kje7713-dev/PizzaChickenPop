@@ -4,7 +4,54 @@
 **Workflow**: iOS TestFlight Deployment  
 **Status**: ✅ Resolved
 
-## Latest Issue (Run #22078666400)
+## Latest Issue (Run #22080600641)
+
+### Error Summary
+- **Run ID**: 22080600641
+- **Workflow**: iOS TestFlight Deployment
+- **Date**: 2026-02-16 23:31:30Z
+- **Conclusion**: Failure
+- **Error Message**: 
+  - `Validation failed Missing Info.plist value. A value for the Info.plist key 'CFBundleIconName' is missing in the bundle '***'`
+  - `Missing required icon file. The bundle does not contain an app icon for iPhone / iPod Touch of exactly '120x120' pixels`
+  - `Missing required icon file. The bundle does not contain an app icon for iPad of exactly '152x152' pixels`
+
+### Root Cause
+When using XcodeGen with modern Xcode (13+), Info.plist keys must be set via build settings using the `INFOPLIST_KEY_` prefix. Even though `CFBundleIconName` was present in the source `Resources/Info.plist` file, it was not being properly included in the compiled Info.plist within the final IPA bundle.
+
+The CI verification step confirmed that Assets.car was being compiled correctly and included in the app bundle, and the source Info.plist had CFBundleIconName set to "AppIcon". However, Apple's TestFlight validation was rejecting the upload because the key was missing from the **compiled** Info.plist.
+
+### Technical Details
+- **Modern Xcode Behavior**: Xcode 13+ and XcodeGen require Info.plist values to be set as build settings with the `INFOPLIST_KEY_` prefix
+- **Static Info.plist Limitation**: Values in static Info.plist files may not be merged into the final compiled Info.plist when using XcodeGen
+- **Asset Catalog Requirement**: iOS 11+ requires both an asset catalog with app icons AND the CFBundleIconName key in Info.plist
+
+### Solution
+Added `INFOPLIST_KEY_CFBundleIconName: AppIcon` to the build settings in `project.yml`:
+
+```yaml
+settings:
+  base:
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    INFOPLIST_KEY_CFBundleIconName: AppIcon  # Added this line
+```
+
+This ensures that:
+1. XcodeGen generates the Xcode project with the proper build setting
+2. Xcode compiles this setting into the final Info.plist in the IPA bundle
+3. Apple's TestFlight validation can find the required CFBundleIconName key
+
+### Files Modified
+- `project.yml` - Added `INFOPLIST_KEY_CFBundleIconName: AppIcon` build setting
+
+### References
+- [Apple Developer: Managing Info.plist values](https://developer.apple.com/documentation/bundleresources/managing-your-app-s-information-property-list)
+- [XcodeGen Documentation: Build Settings](https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md#build-setting-groups)
+- [Stack Overflow: CFBundleIconName Missing](https://stackoverflow.com/questions/46216718/missing-cfbundleiconname-in-xcode9-ios11-app-release)
+
+---
+
+## Previous Issue (Run #22078666400)
 
 ### Error Summary
 - **Run ID**: 22078666400
