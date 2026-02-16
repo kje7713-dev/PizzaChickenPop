@@ -95,7 +95,7 @@ jobs:
       - name: Create build logs directory
         run: mkdir -p ci_logs
 
-      - name: Build & Upload to TestFlight
+      - name: Build IPA
         id: build
         run: |
           set -euo pipefail
@@ -108,6 +108,66 @@ jobs:
           bundle exec fastlane beta 2>&1 | tee ci_logs/fastlane.log
           
           echo "✅ Build and upload completed successfully"
+      
+      - name: Verify IPA contains required assets
+        run: |
+          set -euo pipefail
+          
+          echo "🔍 Verifying IPA contents..."
+          
+          # Create temporary directory for extraction
+          TEMP_DIR=$(mktemp -d)
+          echo "Extracting IPA to: $TEMP_DIR"
+          
+          # Unzip the IPA
+          unzip -q build/PizzaChicken.ipa -d "$TEMP_DIR"
+          
+          # Find the .app bundle
+          APP_BUNDLE=$(find "$TEMP_DIR/Payload" -name "*.app" -maxdepth 1 | head -n 1)
+          
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "❌ Error: Could not find .app bundle in IPA"
+            exit 1
+          fi
+          
+          echo "Found app bundle: $APP_BUNDLE"
+          
+          # Verify CFBundleIconName exists in Info.plist
+          echo ""
+          echo "Checking CFBundleIconName in Info.plist..."
+          ICON_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$APP_BUNDLE/Info.plist" 2>&1) || true
+          
+          if [ "$ICON_NAME" = "AppIcon" ]; then
+            echo "✅ CFBundleIconName is correctly set to: $ICON_NAME"
+          else
+            echo "❌ Error: CFBundleIconName is not set correctly"
+            echo "   Expected: AppIcon"
+            echo "   Got: $ICON_NAME"
+            exit 1
+          fi
+          
+          # Verify Assets.car exists
+          echo ""
+          echo "Checking for Assets.car..."
+          if [ -f "$APP_BUNDLE/Assets.car" ]; then
+            echo "✅ Assets.car exists"
+            ls -lh "$APP_BUNDLE/Assets.car"
+          else
+            echo "❌ Error: Assets.car not found in app bundle"
+            echo "   This means the asset catalog was not compiled into the app"
+            exit 1
+          fi
+          
+          # Optional: List app bundle contents for verification
+          echo ""
+          echo "App bundle contents (first 20 items):"
+          ls -la "$APP_BUNDLE" | head -n 20
+          
+          # Cleanup
+          rm -rf "$TEMP_DIR"
+          
+          echo ""
+          echo "✅ All verification checks passed!"
 
       - name: Upload build artifacts
         if: always()
