@@ -4,7 +4,41 @@
 **Workflow**: iOS TestFlight Deployment  
 **Status**: ✅ Resolved
 
-## Latest Issue (Run #22080600641)
+## Latest Issue - Asset Catalog Cleanup (February 16, 2026)
+
+### Error Summary
+Discovered extraneous file in `Assets.xcassets/AppIcon.appiconset/` that could cause asset compilation issues.
+
+### Root Cause
+An extraneous file named `H` (containing only "h\n") was present in the AppIcon.appiconset directory. While this didn't cause an immediate build failure, it violated asset catalog best practices and could potentially cause issues with Xcode's asset catalog compiler (`actool`).
+
+### Solution
+1. **Removed extraneous file**: Deleted `Assets.xcassets/AppIcon.appiconset/H`
+2. **Created validation script**: Added `.github/scripts/validate_assets.py` to detect such issues in the future
+   - Validates all icon files referenced in Contents.json exist
+   - Detects unreferenced files in asset catalogs
+   - Identifies non-standard files that shouldn't be in asset catalogs
+
+### Files Modified
+- `Assets.xcassets/AppIcon.appiconset/H` - Removed extraneous file
+- `.github/scripts/validate_assets.py` - New validation script
+
+### Validation
+```bash
+python3 .github/scripts/validate_assets.py
+# Output: ✅ All asset validations passed!
+```
+
+### Best Practices
+- Asset catalog directories should only contain:
+  - Image files (.png, .jpg, .jpeg)
+  - Contents.json configuration files
+- All image files should be referenced in Contents.json
+- No temporary files, text files, or other extraneous content
+
+---
+
+## Previous Issue (Run #22080600641)
 
 ### Error Summary
 - **Run ID**: 22080600641
