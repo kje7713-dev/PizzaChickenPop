@@ -235,6 +235,12 @@ match_version.txt
    ```
    - This creates certificates and pushes to your Match repo
    - You'll be prompted for the encryption password (`MATCH_PASSWORD`)
+   
+   **Alternative: Bootstrap via GitHub Actions**
+   - Manually trigger the TestFlight workflow
+   - Temporarily set `MATCH_READONLY: "false"` in the workflow's `env` section
+   - After successful run, remove the variable or set it back to `"true"`
+   - See [SECRETS_REFERENCE.md](SECRETS_REFERENCE.md#match_readonly) for details
 
 3. **Create GitHub Personal Access Token**
    - Go to GitHub → Settings → Developer settings → Personal access tokens
