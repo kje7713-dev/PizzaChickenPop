@@ -74,8 +74,8 @@ jobs:
             # Raw PEM format
             echo "$ASC_KEY" > "$KEY_FILE"
           else
-            # Base64 encoded
-            echo "$ASC_KEY" | base64 --decode > "$KEY_FILE"
+            # Base64 encoded - use macOS-compatible flag with fallback
+            echo "$ASC_KEY" | base64 -D > "$KEY_FILE" || echo "$ASC_KEY" | base64 --decode > "$KEY_FILE"
           fi
           
           # Validate the key
