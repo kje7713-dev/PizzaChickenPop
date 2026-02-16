@@ -4,9 +4,35 @@
 **Workflow**: iOS TestFlight Deployment  
 **Status**: ✅ Resolved
 
-## Error Summary
+## Latest Issue (Run #22078378428)
 
-### Failed Workflow Run
+### Error Summary
+- **Run ID**: 22078378428
+- **Workflow**: iOS TestFlight Deployment
+- **Date**: 2026-02-16 21:45:03Z
+- **Conclusion**: Failure
+- **Error Message**: `No code signing identity found and cannot create a new one because you enabled 'readonly'`
+
+### Root Cause
+The Fastfile was already configured to support the `MATCH_READONLY` environment variable (lines 27-29), which allows toggling between readonly mode (true) and write mode (false) for the Match certificate repository. However, the GitHub Actions workflow file did not include this secret in the environment variables, so the Fastfile couldn't read it from the GitHub secret.
+
+### Solution
+Added `MATCH_READONLY` secret to the GitHub Actions workflow environment variables in `.github/workflows/ios-testflight.yml`:
+
+```yaml
+env:
+  MATCH_READONLY: ${{ secrets.MATCH_READONLY }}
+```
+
+This allows users to:
+- Set `MATCH_READONLY=true` (default if not set) to use existing certificates in readonly mode
+- Set `MATCH_READONLY=false` to allow Match to create new certificates and provisioning profiles
+
+### Files Modified
+- `.github/workflows/ios-testflight.yml` - Added MATCH_READONLY to env section
+- `GITHUB_SECRETS_LIST.md` - Documented the new optional MATCH_READONLY secret
+
+## Previous Issue (Run #22075740003)
 - **Run ID**: 22075740003
 - **Workflow**: iOS TestFlight Deployment
 - **Date**: 2026-02-16 19:50:46Z
