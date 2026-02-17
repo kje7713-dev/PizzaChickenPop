@@ -22,7 +22,7 @@ class GameScene: SKScene {
     
     // MARK: - Scene Lifecycle
     override func didMove(to view: SKView) {
-        super.didMove(to view: view)
+        super.didMove(to: view)
         
         // Set background color
         backgroundColor = .systemBackground
