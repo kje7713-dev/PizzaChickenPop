@@ -18,6 +18,7 @@ class GameScene: SKScene {
     }
     private var timeRemaining: TimeInterval = 30.0
     private let gameDuration: TimeInterval = 30.0
+    private var lastUpdateTime: TimeInterval = 0
     
     // MARK: - Managers
     private let scoreManager = ScoreManager()
@@ -148,6 +149,7 @@ class GameScene: SKScene {
         gameState = .playing
         score = 0
         timeRemaining = gameDuration
+        lastUpdateTime = 0
         hudNode.updateTime(Int(ceil(timeRemaining)))
     }
     
@@ -190,8 +192,17 @@ class GameScene: SKScene {
         // Only update during playing state
         guard gameState == .playing else { return }
         
+        // Initialize lastUpdateTime on first frame
+        if lastUpdateTime == 0 {
+            lastUpdateTime = currentTime
+            return
+        }
+        
+        // Calculate delta time
+        let deltaTime = currentTime - lastUpdateTime
+        lastUpdateTime = currentTime
+        
         // Update timer
-        let deltaTime = 1.0 / 60.0  // Approximate frame time
         timeRemaining -= deltaTime
         
         // Clamp to 0
@@ -208,14 +219,14 @@ class GameScene: SKScene {
         
         // Move chicken toward target
         if let target = targetPosition {
-            moveChickenToward(target)
+            moveChickenToward(target, deltaTime: deltaTime)
         }
         
         // Check collision with pizza
         checkPizzaCollision()
     }
     
-    private func moveChickenToward(_ target: CGPoint) {
+    private func moveChickenToward(_ target: CGPoint, deltaTime: TimeInterval) {
         let currentPos = chickenNode.position
         let dx = target.x - currentPos.x
         let dy = target.y - currentPos.y
@@ -228,7 +239,7 @@ class GameScene: SKScene {
         }
         
         // Move toward target
-        let speed = moveSpeed / 60.0  // Per frame
+        let speed = moveSpeed * CGFloat(deltaTime)
         let moveDistance = min(speed, distance)
         let angle = atan2(dy, dx)
         
