@@ -24,8 +24,8 @@ class GameScene: SKScene {
     override func didMove(to view: SKView) {
         super.didMove(to: view)
         
-        // Set background color
-        backgroundColor = .systemBackground
+        // Set background color to light sky blue
+        backgroundColor = SKColor(red: 0.53, green: 0.81, blue: 0.92, alpha: 1.0)
         
         // Setup game elements
         setupChicken()
@@ -62,7 +62,7 @@ class GameScene: SKScene {
     private func setupScoreLabel() {
         scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         scoreLabel.fontSize = 24
-        scoreLabel.fontColor = .label
+        scoreLabel.fontColor = .black
         scoreLabel.horizontalAlignmentMode = .left
         scoreLabel.verticalAlignmentMode = .top
         
