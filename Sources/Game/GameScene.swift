@@ -105,6 +105,8 @@ class GameScene: SKScene {
     }
     
     private func movePizza() {
+        guard let pizzaNode = pizzaNode else { return }
+        
         // Calculate safe bounds (avoid score label area)
         let margin: CGFloat = 50
         let scoreLabelHeight: CGFloat = 80
@@ -195,6 +197,8 @@ class GameScene: SKScene {
     }
     
     private func createExplosionParticles() {
+        guard let chickenNode = chickenNode else { return }
+        
         // Create simple particle effect
         let particleCount = 20
         let chickenPosition = chickenNode.position
@@ -224,6 +228,8 @@ class GameScene: SKScene {
     }
     
     private func resetGame() {
+        guard let chickenNode = chickenNode else { return }
+        
         // Reset score
         score = 0
         
@@ -240,9 +246,15 @@ class GameScene: SKScene {
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         
-        // Reposition elements on orientation change
-        chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        scoreLabel.position = CGPoint(x: uiMargin, y: size.height - uiMargin)
-        movePizza()
+        // Only reposition elements if they exist (avoid crash when called before didMove)
+        if let chickenNode = chickenNode {
+            chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        }
+        if let scoreLabel = scoreLabel {
+            scoreLabel.position = CGPoint(x: uiMargin, y: size.height - uiMargin)
+        }
+        if pizzaNode != nil {
+            movePizza()
+        }
     }
 }
