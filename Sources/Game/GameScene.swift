@@ -30,6 +30,7 @@ class GameScene: SKScene {
     // MARK: - Layout Constants
     private let edgeMargin: CGFloat = 80
     private let collisionDistance: CGFloat = 60
+    private let stopThreshold: CGFloat = 5
     
     // MARK: - Scene Lifecycle
     override func didMove(to view: SKView) {
@@ -162,8 +163,9 @@ class GameScene: SKScene {
         hudNode.updateBest(scoreManager.bestScore)
         
         // Show game over overlay
-        gameOverOverlay = GameOverOverlay(size: size, finalScore: score, bestScore: scoreManager.bestScore)
-        addChild(gameOverOverlay!)
+        let overlay = GameOverOverlay(size: size, finalScore: score, bestScore: scoreManager.bestScore)
+        gameOverOverlay = overlay
+        addChild(overlay)
     }
     
     private func restartGame() {
@@ -233,7 +235,7 @@ class GameScene: SKScene {
         let distance = sqrt(dx * dx + dy * dy)
         
         // Stop if close enough
-        if distance < 5 {
+        if distance < stopThreshold {
             targetPosition = nil
             return
         }
