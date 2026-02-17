@@ -106,19 +106,20 @@ When XcodeGen runs on the CI environment, it generates a project file in the for
 - **Error Location**: During the `gym` (build) step when xcodebuild attempts to open the generated project
 
 ### Solution
-Updated both iOS workflow files to use Xcode 16.2, which is already available on the macos-14 GitHub Actions runner:
+Updated both iOS workflow files to use Xcode 26.2, which is available on the macos-26 GitHub Actions runner:
 
-1. **ios-testflight.yml**: Changed from Xcode 15.4 to Xcode 16.2
-2. **ios-build.yml**: Changed from Xcode 15.4 to Xcode 16.2 (for consistency)
+1. **ios-testflight.yml**: Changed from Xcode 16.2 to Xcode 26.2
+2. **ios-build.yml**: Changed from Xcode 16.2 to Xcode 26.2 (for consistency)
 
 This allows the workflow to:
 - Use XcodeGen's latest features
+- Build with iOS 26 SDK as required by Apple (mandatory from April 28, 2026)
 - Open and build projects in the newer format
 - Maintain compatibility with modern Xcode tooling
 
 ### Files Modified
-- `.github/workflows/ios-testflight.yml` - Updated Xcode version from 15.4 to 16.2
-- `.github/workflows/ios-build.yml` - Updated Xcode version from 15.4 to 16.2
+- `.github/workflows/ios-testflight.yml` - Updated Xcode version from 16.2 to 26.2 and runner from macos-14 to macos-26
+- `.github/workflows/ios-build.yml` - Updated Xcode version from 16.2 to 26.2 and runner from macos-14 to macos-26
 
 ### Alternative Solutions Considered
 1. **Downgrade XcodeGen**: Pin to an older version that generates Xcode 15-compatible projects
@@ -127,13 +128,13 @@ This allows the workflow to:
 2. **Manual Format Conversion**: Edit `project.pbxproj` to change objectVersion
    - ❌ Not recommended: Error-prone and doesn't work with Buildable Folders
    
-3. **Upgrade to Xcode 16**: Use the latest Xcode version available on the runner
-   - ✅ **Selected**: Best long-term solution, aligns with modern tooling
+3. **Upgrade to Xcode 26**: Use the latest Xcode version available on the macos-26 runner
+   - ✅ **Selected**: Best long-term solution, aligns with modern tooling and meets Apple's iOS 26 SDK requirement
 
 ### References
 - [Xcode 16 Buildable Folders and Compatibility Issues](https://blog.supereasyapps.com/xcode-16-buildable-folders-break-xcode-15-backwards-compatibility/)
 - [XcodeGen Project Format Discussion](https://github.com/yonaskolb/XcodeGen/issues/1505)
-- [GitHub Actions macos-14 Runner Images](https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md)
+- [GitHub Actions macos-26 Runner Images](https://github.com/actions/runner-images)
 
 ---
 
