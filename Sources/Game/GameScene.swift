@@ -1,24 +1,34 @@
 import SpriteKit
 
-/// Main game scene for PizzaChicken
+/// Main game scene for PizzaChicken - Timed 30s mode
 class GameScene: SKScene {
     
     // MARK: - Game Nodes
     private var chickenNode: SKShapeNode!
     private var pizzaNode: SKShapeNode!
-    private var scoreLabel: SKLabelNode!
+    private var hudNode: HUDNode!
+    private var gameOverOverlay: GameOverOverlay?
     
     // MARK: - Game State
+    private var gameState: GameState = .ready
     private var score: Int = 0 {
         didSet {
-            scoreLabel.text = "Score: \(score)"
+            hudNode?.updateScore(score)
         }
     }
-    private let maxChickenScale: CGFloat = 2.0
-    private let chickenGrowthRate: CGFloat = 0.05
+    private var timeRemaining: TimeInterval = 30.0
+    private let gameDuration: TimeInterval = 30.0
+    
+    // MARK: - Managers
+    private let scoreManager = ScoreManager()
+    
+    // MARK: - Movement
+    private var targetPosition: CGPoint?
+    private let moveSpeed: CGFloat = 200.0
     
     // MARK: - Layout Constants
-    private let uiMargin: CGFloat = 20
+    private let edgeMargin: CGFloat = 80
+    private let collisionDistance: CGFloat = 60
     
     // MARK: - Scene Lifecycle
     override func didMove(to view: SKView) {
@@ -29,8 +39,11 @@ class GameScene: SKScene {
         
         // Setup game elements
         setupChicken()
-        setupScoreLabel()
+        setupHUD()
         spawnPizza()
+        
+        // Load best score
+        hudNode.updateBest(scoreManager.bestScore)
     }
     
     // MARK: - Setup Methods
@@ -59,19 +72,9 @@ class GameScene: SKScene {
         chickenNode.addChild(beak)
     }
     
-    private func setupScoreLabel() {
-        scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        scoreLabel.fontSize = 24
-        scoreLabel.fontColor = .black
-        scoreLabel.horizontalAlignmentMode = .left
-        scoreLabel.verticalAlignmentMode = .top
-        
-        // Position in top-left (accounting for safe area)
-        scoreLabel.position = CGPoint(x: uiMargin, y: size.height - uiMargin)
-        scoreLabel.text = "Score: 0"
-        scoreLabel.name = "scoreLabel"
-        scoreLabel.zPosition = 100
-        addChild(scoreLabel)
+    private func setupHUD() {
+        hudNode = HUDNode(size: size)
+        addChild(hudNode)
     }
     
     private func spawnPizza() {
@@ -99,22 +102,19 @@ class GameScene: SKScene {
         }
         
         // Position pizza at random location
-        movePizza()
+        repositionPizza()
         
         addChild(pizzaNode)
     }
     
-    private func movePizza() {
+    private func repositionPizza() {
         guard let pizzaNode = pizzaNode else { return }
         
-        // Calculate safe bounds (avoid score label area)
-        let margin: CGFloat = 50
-        let scoreLabelHeight: CGFloat = 80
-        
-        let minX = margin
-        let maxX = size.width - margin
-        let minY = margin
-        let maxY = size.height - scoreLabelHeight
+        // Keep at least 80px away from all edges
+        let minX = edgeMargin
+        let maxX = size.width - edgeMargin
+        let minY = edgeMargin
+        let maxY = size.height - edgeMargin
         
         let randomX = CGFloat.random(in: minX...maxX)
         let randomY = CGFloat.random(in: minY...maxY)
@@ -126,135 +126,163 @@ class GameScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
-        let touchedNodes = nodes(at: location)
         
-        // Check if pizza was tapped
-        for node in touchedNodes {
-            if node.name == "pizza" || node.parent?.name == "pizza" {
-                handlePizzaTap()
-                break
-            }
+        switch gameState {
+        case .ready:
+            // First tap starts the game
+            startGame()
+            targetPosition = location
+            
+        case .playing:
+            // Set target position for chicken to move toward
+            targetPosition = location
+            
+        case .gameOver:
+            // Tap to restart
+            restartGame()
         }
     }
     
-    private func handlePizzaTap() {
+    // MARK: - Game Flow
+    private func startGame() {
+        gameState = .playing
+        score = 0
+        timeRemaining = gameDuration
+        hudNode.updateTime(Int(ceil(timeRemaining)))
+    }
+    
+    private func endGame() {
+        gameState = .gameOver
+        targetPosition = nil
+        
+        // Update best score
+        scoreManager.checkAndUpdateBestScore(score)
+        hudNode.updateBest(scoreManager.bestScore)
+        
+        // Show game over overlay
+        gameOverOverlay = GameOverOverlay(size: size, finalScore: score, bestScore: scoreManager.bestScore)
+        addChild(gameOverOverlay!)
+    }
+    
+    private func restartGame() {
+        // Remove overlay
+        gameOverOverlay?.removeFromParent()
+        gameOverOverlay = nil
+        
+        // Reset state
+        gameState = .ready
+        score = 0
+        timeRemaining = gameDuration
+        hudNode.updateScore(0)
+        hudNode.updateTime(Int(ceil(timeRemaining)))
+        
+        // Reset chicken position
+        chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        
+        // Respawn pizza
+        repositionPizza()
+    }
+    
+    // MARK: - Update Loop
+    override func update(_ currentTime: TimeInterval) {
+        super.update(currentTime)
+        
+        // Only update during playing state
+        guard gameState == .playing else { return }
+        
+        // Update timer
+        let deltaTime = 1.0 / 60.0  // Approximate frame time
+        timeRemaining -= deltaTime
+        
+        // Clamp to 0
+        if timeRemaining <= 0 {
+            timeRemaining = 0
+            hudNode.updateTime(0)
+            endGame()
+            return
+        }
+        
+        // Update HUD with ceiling of time
+        let displayTime = Int(ceil(timeRemaining))
+        hudNode.updateTime(displayTime)
+        
+        // Move chicken toward target
+        if let target = targetPosition {
+            moveChickenToward(target)
+        }
+        
+        // Check collision with pizza
+        checkPizzaCollision()
+    }
+    
+    private func moveChickenToward(_ target: CGPoint) {
+        let currentPos = chickenNode.position
+        let dx = target.x - currentPos.x
+        let dy = target.y - currentPos.y
+        let distance = sqrt(dx * dx + dy * dy)
+        
+        // Stop if close enough
+        if distance < 5 {
+            targetPosition = nil
+            return
+        }
+        
+        // Move toward target
+        let speed = moveSpeed / 60.0  // Per frame
+        let moveDistance = min(speed, distance)
+        let angle = atan2(dy, dx)
+        
+        chickenNode.position = CGPoint(
+            x: currentPos.x + cos(angle) * moveDistance,
+            y: currentPos.y + sin(angle) * moveDistance
+        )
+    }
+    
+    private func checkPizzaCollision() {
+        guard let pizza = pizzaNode else { return }
+        
+        let dx = chickenNode.position.x - pizza.position.x
+        let dy = chickenNode.position.y - pizza.position.y
+        let distance = sqrt(dx * dx + dy * dy)
+        
+        if distance < collisionDistance {
+            handlePizzaEat()
+        }
+    }
+    
+    private func handlePizzaEat() {
         // Increment score
         score += 1
         
         // Play pizza pop animation
-        let scaleUp = SKAction.scale(to: 1.2, duration: 0.1)
+        let scaleUp = SKAction.scale(to: 1.3, duration: 0.1)
         let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
         let popSequence = SKAction.sequence([scaleUp, scaleDown])
         pizzaNode.run(popSequence)
         
-        // Grow chicken
-        growChicken()
-        
-        // Move pizza to new location
-        let moveDelay = SKAction.wait(forDuration: 0.2)
-        let moveAction = SKAction.run { [weak self] in
-            self?.movePizza()
+        // Respawn pizza at new location
+        let delay = SKAction.wait(forDuration: 0.2)
+        let reposition = SKAction.run { [weak self] in
+            self?.repositionPizza()
         }
-        pizzaNode.run(SKAction.sequence([moveDelay, moveAction]))
-    }
-    
-    private func growChicken() {
-        let newScale = chickenNode.xScale + chickenGrowthRate
-        
-        // Animate chicken growth with bounce
-        let scaleAction = SKAction.scale(to: newScale, duration: 0.15)
-        scaleAction.timingMode = .easeOut
-        chickenNode.run(scaleAction)
-        
-        // Check if chicken exceeded threshold
-        if newScale >= maxChickenScale {
-            // Delay explosion slightly
-            let delay = SKAction.wait(forDuration: 0.3)
-            let explodeAction = SKAction.run { [weak self] in
-                self?.explodeChicken()
-            }
-            chickenNode.run(SKAction.sequence([delay, explodeAction]))
-        }
-    }
-    
-    private func explodeChicken() {
-        // Create explosion effect (scale up, fade out, shake)
-        let scaleUp = SKAction.scale(to: 3.0, duration: 0.3)
-        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
-        let rotate1 = SKAction.rotate(byAngle: 0.2, duration: 0.05)
-        let rotate2 = SKAction.rotate(byAngle: -0.4, duration: 0.05)
-        let rotate3 = SKAction.rotate(byAngle: 0.2, duration: 0.05)
-        let shake = SKAction.sequence([rotate1, rotate2, rotate3])
-        
-        let explosion = SKAction.group([scaleUp, fadeOut, shake])
-        
-        chickenNode.run(explosion) { [weak self] in
-            self?.resetGame()
-        }
-        
-        // Add particle burst effect
-        createExplosionParticles()
-    }
-    
-    private func createExplosionParticles() {
-        guard let chickenNode = chickenNode else { return }
-        
-        // Create simple particle effect
-        let particleCount = 20
-        let chickenPosition = chickenNode.position
-        
-        for _ in 0..<particleCount {
-            let particle = SKShapeNode(circleOfRadius: 5)
-            particle.fillColor = .systemYellow
-            particle.strokeColor = .orange
-            particle.position = chickenPosition
-            addChild(particle)
-            
-            // Random direction for particle
-            let angle = CGFloat.random(in: 0...(2 * .pi))
-            let distance = CGFloat.random(in: 50...150)
-            let dx = cos(angle) * distance
-            let dy = sin(angle) * distance
-            
-            let move = SKAction.move(by: CGVector(dx: dx, dy: dy), duration: 0.5)
-            let fadeOut = SKAction.fadeOut(withDuration: 0.5)
-            let remove = SKAction.removeFromParent()
-            
-            particle.run(SKAction.sequence([
-                SKAction.group([move, fadeOut]),
-                remove
-            ]))
-        }
-    }
-    
-    private func resetGame() {
-        guard let chickenNode = chickenNode else { return }
-        
-        // Reset score
-        score = 0
-        
-        // Reset chicken scale and appearance
-        chickenNode.setScale(1.0)
-        chickenNode.alpha = 1.0
-        chickenNode.zRotation = 0
-        
-        // Respawn pizza
-        spawnPizza()
+        pizzaNode.run(SKAction.sequence([delay, reposition]))
     }
     
     // MARK: - Layout Updates
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         
-        // Only reposition elements if they exist (avoid crash when called before didMove)
-        if let chickenNode = chickenNode {
+        // Reposition HUD
+        hudNode?.repositionForSize(size)
+        
+        // Reposition chicken if in ready state
+        if gameState == .ready, let chickenNode = chickenNode {
             chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         }
-        if let scoreLabel = scoreLabel {
-            scoreLabel.position = CGPoint(x: uiMargin, y: size.height - uiMargin)
-        }
+        
+        // Reposition pizza if needed
         if pizzaNode != nil {
-            movePizza()
+            repositionPizza()
         }
     }
 }
