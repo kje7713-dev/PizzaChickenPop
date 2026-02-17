@@ -1,8 +1,10 @@
 # Particles
 
-This directory contains SpriteKit particle effect files:
+This directory will contain SpriteKit particle effect files:
 
-- `FeatherExplosion.sks` - Feather particle explosion effect
-- `CrumbBurst.sks` - Crumb burst particle effect
+- `FeatherExplosion.sks` - Feather particle explosion effect (planned)
+- `CrumbBurst.sks` - Crumb burst particle effect (planned)
 
-TODO: Add your particle effect (.sks) files here.
+Currently, the game uses a simple procedural particle effect created with SKShapeNode.
+
+TODO: Add your particle effect (.sks) files here if you want to enhance the visual effects.
