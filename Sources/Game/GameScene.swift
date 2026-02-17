@@ -17,6 +17,9 @@ class GameScene: SKScene {
     private let maxChickenScale: CGFloat = 2.0
     private let chickenGrowthRate: CGFloat = 0.05
     
+    // MARK: - Layout Constants
+    private let uiMargin: CGFloat = 20
+    
     // MARK: - Scene Lifecycle
     override func didMove(to view: SKView) {
         super.didMove(to view: view)
@@ -64,8 +67,7 @@ class GameScene: SKScene {
         scoreLabel.verticalAlignmentMode = .top
         
         // Position in top-left (accounting for safe area)
-        let margin: CGFloat = 20
-        scoreLabel.position = CGPoint(x: margin, y: size.height - margin)
+        scoreLabel.position = CGPoint(x: uiMargin, y: size.height - uiMargin)
         scoreLabel.text = "Score: 0"
         scoreLabel.name = "scoreLabel"
         scoreLabel.zPosition = 100
@@ -239,17 +241,8 @@ class GameScene: SKScene {
         super.didChangeSize(oldSize)
         
         // Reposition elements on orientation change
-        if chickenNode != nil {
-            chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        }
-        
-        if scoreLabel != nil {
-            let margin: CGFloat = 20
-            scoreLabel.position = CGPoint(x: margin, y: size.height - margin)
-        }
-        
-        if pizzaNode != nil {
-            movePizza()
-        }
+        chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        scoreLabel.position = CGPoint(x: uiMargin, y: size.height - uiMargin)
+        movePizza()
     }
 }
