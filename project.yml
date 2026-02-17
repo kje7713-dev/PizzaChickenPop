@@ -26,9 +26,9 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - Sources
+      - Assets.xcassets
     resources:
       - Resources
-      - Assets.xcassets
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
