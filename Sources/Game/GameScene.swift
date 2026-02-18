@@ -98,8 +98,8 @@ class GameScene: SKScene {
         chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         
         // Scale chicken sprite appropriately
-        // Original sprites are 1024x1024, scale to ~110 pixels (about 2x pizza size)
-        chickenNode.setScale(0.11)
+        // Original sprites are 1024x1024, scale to ~120 pixels (about 2x pizza size)
+        chickenNode.setScale(0.12)
         
         addChild(chickenNode)
     }
@@ -328,7 +328,7 @@ class GameScene: SKScene {
             // Reset chicken position and visibility
             chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
             chickenNode.alpha = 1.0
-            chickenNode.setScale(0.11)
+            chickenNode.setScale(0.12)
             
             // Remove any spicy wing
             removeSpicyWing()
