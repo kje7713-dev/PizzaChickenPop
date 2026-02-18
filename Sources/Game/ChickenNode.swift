@@ -37,7 +37,7 @@ final class ChickenNode: SKSpriteNode {
     /// Loads a texture from the bundled resources with graceful fallback
     ///
     /// Resource lookup strategy:
-    /// 1. Try SKTexture(imageNamed:) which works with asset catalogs and bundled resources
+    /// 1. Try UIImage(named:) which works with asset catalogs and bundled resources
     /// 2. Try Bundle.main with subdirectory path (standard XcodeGen resource bundling)
     /// 3. Try Bundle.main without subdirectory (alternative bundling configuration)
     /// 4. If SwiftPM module bundle is available, try it as well
@@ -49,7 +49,7 @@ final class ChickenNode: SKSpriteNode {
         let subdirectory = "Sprites/Chicken"
         let ext = "PNG"
         
-        // Try SKTexture(imageNamed:) first - this is the recommended way for SpriteKit
+        // Try UIImage(named:) first - this is the recommended way for loading images in iOS
         // It searches in the main bundle and handles various resource locations automatically
         let fullPath = "\(subdirectory)/\(baseName)"
         if let image = UIImage(named: fullPath) {
