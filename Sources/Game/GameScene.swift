@@ -154,20 +154,17 @@ class GameScene: SKScene {
     private func recordClick() {
         let currentTime = Date().timeIntervalSinceReferenceDate
         clickTimestamps.append(currentTime)
-        
-        // Clean up old clicks outside the tracking window
-        let cutoffTime = currentTime - clickRateWindow
-        clickTimestamps.removeAll { $0 < cutoffTime }
     }
     
     private func getCurrentClickRate() -> CGFloat {
         let currentTime = Date().timeIntervalSinceReferenceDate
         let cutoffTime = currentTime - clickRateWindow
         
-        // Count clicks within the time window
-        let recentClicks = clickTimestamps.filter { $0 >= cutoffTime }
+        // Clean up old clicks outside the tracking window
+        clickTimestamps.removeAll { $0 < cutoffTime }
         
-        return CGFloat(recentClicks.count)
+        // Return current click count
+        return CGFloat(clickTimestamps.count)
     }
     
     private func getCurrentMoveSpeed() -> CGFloat {
