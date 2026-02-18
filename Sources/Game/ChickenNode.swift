@@ -45,7 +45,7 @@ final class ChickenNode: SKSpriteNode {
     /// - Parameter baseName: The base name of the image file (e.g., "IMG_3731")
     /// - Returns: The loaded SKTexture, or a fallback colored texture if loading fails
     private static func texture(named baseName: String) -> SKTexture {
-        let subdirectory = "Resources/Sprites/Chicken"
+        let subdirectory = "Sprites/Chicken"
         let ext = "PNG"
         
         // Try Bundle.main with subdirectory first (standard XcodeGen configuration)

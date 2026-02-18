@@ -1,12 +1,21 @@
 # Sprites
 
-This directory will contain sprite images for the game:
+This directory contains sprite images for the game.
 
-- `chicken_normal.png` - Normal chicken sprite (planned)
-- `chicken_stuffed.png` - Stuffed chicken sprite (planned)
-- `chicken_about_to_pop.png` - Chicken about to explode sprite (planned)
-- `pizza.png` - Pizza sprite (planned)
+## Chicken Sprites (✅ Integrated)
 
-Currently, the game uses procedural SKShapeNode shapes instead of sprite images.
+The chicken sprites are located in `Chicken/` subdirectory and are fully integrated into the game:
 
-TODO: Add your sprite image files here if you want to replace the procedural graphics.
+- `IMG_3731.PNG` - Idle chicken sprite (1024x1024)
+- `IMG_3732.PNG` - Bite animation frame 1
+- `IMG_3733.PNG` - Bite animation frame 2
+- `IMG_3734.PNG` - Bite animation frame 3
+
+These sprites are loaded and used by `Sources/Game/ChickenNode.swift`, which displays the chicken with idle and bite animations.
+
+## Pizza Sprites (Not Yet Implemented)
+
+The pizza currently uses a procedural `SKShapeNode` circle. To add a pizza sprite:
+
+1. Add a `pizza.png` file to this directory
+2. Update `Sources/Game/GameScene.swift` to load and use the sprite instead of `SKShapeNode`
