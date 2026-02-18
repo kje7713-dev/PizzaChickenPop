@@ -4,7 +4,7 @@ import SpriteKit
 class GameScene: SKScene {
     
     // MARK: - Game Nodes
-    private var chickenNode: SKShapeNode!
+    private var chickenNode: ChickenNode!
     private var pizzaNode: SKShapeNode!
     private var spicyWingNode: SKShapeNode?
     private var hudNode: HUDNode!
@@ -93,28 +93,15 @@ class GameScene: SKScene {
     
     // MARK: - Setup Methods
     private func setupChicken() {
-        // Create chicken as yellow circle with red beak triangle
-        let chickenRadius: CGFloat = 50
-        chickenNode = SKShapeNode(circleOfRadius: chickenRadius)
-        chickenNode.fillColor = .systemYellow
-        chickenNode.strokeColor = .orange
-        chickenNode.lineWidth = 2
+        // Create sprite-based chicken
+        chickenNode = ChickenNode()
         chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        chickenNode.name = "chicken"
+        
+        // Scale to match the previous circle size (radius was 50)
+        // The sprite images are likely much larger, so scale them down
+        chickenNode.setScale(0.15)
+        
         addChild(chickenNode)
-        
-        // Add beak (red triangle)
-        let beakPath = CGMutablePath()
-        beakPath.move(to: CGPoint(x: chickenRadius, y: 0))
-        beakPath.addLine(to: CGPoint(x: chickenRadius + 15, y: -8))
-        beakPath.addLine(to: CGPoint(x: chickenRadius + 15, y: 8))
-        beakPath.closeSubpath()
-        
-        let beak = SKShapeNode(path: beakPath)
-        beak.fillColor = .systemRed
-        beak.strokeColor = .systemRed
-        beak.name = "beak"
-        chickenNode.addChild(beak)
     }
     
     private func setupHUD() {
@@ -490,6 +477,9 @@ class GameScene: SKScene {
     private func handlePizzaEat() {
         // Increment score
         score += 1
+        
+        // Play chicken bite animation
+        chickenNode.playMunch()
         
         // Play pizza pop animation
         let scaleUp = SKAction.scale(to: 1.3, duration: 0.1)
