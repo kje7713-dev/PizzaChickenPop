@@ -37,10 +37,11 @@ final class ChickenNode: SKSpriteNode {
     /// Loads a texture from the bundled resources with graceful fallback
     ///
     /// Resource lookup strategy:
-    /// 1. Try Bundle.main with subdirectory path (standard XcodeGen resource bundling)
-    /// 2. Try Bundle.main without subdirectory (alternative bundling configuration)
-    /// 3. If SwiftPM module bundle is available, try it as well
-    /// 4. If all attempts fail, return a safe fallback texture instead of crashing
+    /// 1. Try UIImage(named:) which works with asset catalogs and bundled resources
+    /// 2. Try Bundle.main with subdirectory path (standard XcodeGen resource bundling)
+    /// 3. Try Bundle.main without subdirectory (alternative bundling configuration)
+    /// 4. If SwiftPM module bundle is available, try it as well
+    /// 5. If all attempts fail, return a safe fallback texture instead of crashing
     ///
     /// - Parameter baseName: The base name of the image file (e.g., "IMG_3731")
     /// - Returns: The loaded SKTexture, or a fallback colored texture if loading fails
@@ -48,7 +49,20 @@ final class ChickenNode: SKSpriteNode {
         let subdirectory = "Sprites/Chicken"
         let ext = "PNG"
         
-        // Try Bundle.main with subdirectory first (standard XcodeGen configuration)
+        // Try UIImage(named:) first - this is the recommended way for loading images in iOS
+        // It searches in the main bundle and handles various resource locations automatically
+        // For bundled resources (not asset catalogs), it can accept path-like names
+        let resourceName = "\(subdirectory)/\(baseName)"
+        if let image = UIImage(named: resourceName) {
+            return SKTexture(image: image)
+        }
+        
+        // Try with just the base name (in case resources are flattened or in asset catalog)
+        if let image = UIImage(named: baseName) {
+            return SKTexture(image: image)
+        }
+        
+        // Try Bundle.main with subdirectory path (standard XcodeGen configuration)
         if let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
            let image = UIImage(contentsOfFile: url.path) {
             return SKTexture(image: image)
@@ -73,9 +87,11 @@ final class ChickenNode: SKSpriteNode {
         print("""
             ⚠️ Warning: Failed to load texture '\(baseName).\(ext)'.
             Attempted locations:
-            - Bundle.main: \(subdirectory)/\(baseName).\(ext)
+            - UIImage(named:) with subdirectory: \(resourceName)
+            - UIImage(named:) base name only: \(baseName)
+            - Bundle.main with subdirectory: \(subdirectory)/\(baseName).\(ext)
             - Bundle.main root: \(baseName).\(ext)
-            - Class bundle: \(subdirectory)/\(baseName).\(ext)
+            - Class bundle with subdirectory: \(subdirectory)/\(baseName).\(ext)
             
             Using fallback placeholder texture. Please ensure the Resources directory is properly bundled.
             """)
