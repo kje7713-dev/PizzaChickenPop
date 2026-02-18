@@ -51,8 +51,8 @@ final class ChickenNode: SKSpriteNode {
         
         // Try UIImage(named:) first - this is the recommended way for loading images in iOS
         // It searches in the main bundle and handles various resource locations automatically
-        let fullPath = "\(subdirectory)/\(baseName)"
-        if let image = UIImage(named: fullPath) {
+        let resourceName = "\(subdirectory)/\(baseName)"
+        if let image = UIImage(named: resourceName) {
             return SKTexture(image: image)
         }
         
@@ -86,7 +86,7 @@ final class ChickenNode: SKSpriteNode {
         print("""
             ⚠️ Warning: Failed to load texture '\(baseName).\(ext)'.
             Attempted locations:
-            - UIImage(named:): \(fullPath)
+            - UIImage(named:): \(resourceName)
             - UIImage(named:): \(baseName)
             - Bundle.main: \(subdirectory)/\(baseName).\(ext)
             - Bundle.main root: \(baseName).\(ext)
