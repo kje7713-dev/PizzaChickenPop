@@ -1,11 +1,12 @@
 import SpriteKit
 
-/// HUD displaying Score, Time, and Best score
+/// HUD displaying Score, Time, Best score, and Level
 class HUDNode: SKNode {
     
     private let scoreLabel: SKLabelNode
     private let timeLabel: SKLabelNode
     private let bestLabel: SKLabelNode
+    private let levelLabel: SKLabelNode
     
     private let margin: CGFloat = 20
     
@@ -40,11 +41,22 @@ class HUDNode: SKNode {
         bestLabel.text = "Best: 0"
         bestLabel.zPosition = 100
         
+        // Level label (center-top)
+        levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        levelLabel.fontSize = 28
+        levelLabel.fontColor = .black
+        levelLabel.horizontalAlignmentMode = .center
+        levelLabel.verticalAlignmentMode = .top
+        levelLabel.position = CGPoint(x: size.width / 2, y: size.height - margin)
+        levelLabel.text = "Level 1"
+        levelLabel.zPosition = 100
+        
         super.init()
         
         addChild(scoreLabel)
         addChild(timeLabel)
         addChild(bestLabel)
+        addChild(levelLabel)
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -63,9 +75,14 @@ class HUDNode: SKNode {
         bestLabel.text = "Best: \(best)"
     }
     
+    func updateLevel(_ level: Int) {
+        levelLabel.text = "Level \(level)"
+    }
+    
     func repositionForSize(_ size: CGSize) {
         scoreLabel.position = CGPoint(x: margin, y: size.height - margin)
         timeLabel.position = CGPoint(x: size.width - margin, y: size.height - margin)
         bestLabel.position = CGPoint(x: margin, y: size.height - margin - 30)
+        levelLabel.position = CGPoint(x: size.width / 2, y: size.height - margin)
     }
 }

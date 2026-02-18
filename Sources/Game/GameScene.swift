@@ -12,15 +12,19 @@ class GameScene: SKScene {
     
     // MARK: - Game State
     private var gameState: GameState = .ready
+    private var currentLevel: Int = 1
     private var score: Int = 0 {
         didSet {
             hudNode?.updateScore(score)
+            checkLevelComplete()
         }
     }
     private var spicyWingHits: Int = 0
     private var timeRemaining: TimeInterval = 30.0
-    private let gameDuration: TimeInterval = 30.0
+    private var gameDuration: TimeInterval = 30.0
     private var lastUpdateTime: TimeInterval = 0
+    private var pizzaMoveTimer: TimeInterval = 0
+    private let pizzaMoveInterval: TimeInterval = 2.0
     
     // MARK: - Managers
     private let scoreManager = ScoreManager()
@@ -38,7 +42,30 @@ class GameScene: SKScene {
     private let stopThreshold: CGFloat = 5
     
     // MARK: - Spicy Wing Constants
-    private let spicyWingSpawnChance: Double = 0.3 // 30% chance to spawn after eating pizza
+    private var spicyWingSpawnChance: Double {
+        switch currentLevel {
+        case 1:
+            return 0.3 // 30% chance
+        case 2:
+            return 0.5 // 50% chance - increased for level 2
+        case 3:
+            return 0.7 // 70% chance - increased for level 3
+        default:
+            return 0.3
+        }
+    }
+    private var spicyWingRadius: CGFloat {
+        switch currentLevel {
+        case 1:
+            return 25
+        case 2:
+            return 35 // Larger for level 2
+        case 3:
+            return 45 // Even larger for level 3
+        default:
+            return 25
+        }
+    }
     private let maxSpicyWingHits: Int = 3
     
     // MARK: - Scene Lifecycle
@@ -92,23 +119,24 @@ class GameScene: SKScene {
         // Remove existing pizza if any
         pizzaNode?.removeFromParent()
         
-        // Create pizza as orange circle with pepperoni dots
-        let pizzaRadius: CGFloat = 30
+        // Create pizza with size based on level
+        let pizzaRadius: CGFloat = currentLevel == 3 ? 20 : 30 // Smaller pizzas in level 3
         pizzaNode = SKShapeNode(circleOfRadius: pizzaRadius)
         pizzaNode.fillColor = .systemOrange
         pizzaNode.strokeColor = .brown
         pizzaNode.lineWidth = 2
         pizzaNode.name = "pizza"
         
-        // Add pepperoni dots
+        // Add pepperoni dots (scale with pizza size)
+        let pepperoniScale: CGFloat = currentLevel == 3 ? 0.7 : 1.0
         let pepperoniPositions: [(CGFloat, CGFloat)] = [
             (10, 10), (-10, 10), (10, -10), (-10, -10), (0, 0)
         ]
         for (x, y) in pepperoniPositions {
-            let pepperoni = SKShapeNode(circleOfRadius: 5)
+            let pepperoni = SKShapeNode(circleOfRadius: 5 * pepperoniScale)
             pepperoni.fillColor = .systemRed
             pepperoni.strokeColor = .systemRed
-            pepperoni.position = CGPoint(x: x, y: y)
+            pepperoni.position = CGPoint(x: x * pepperoniScale, y: y * pepperoniScale)
             pizzaNode.addChild(pepperoni)
         }
         
@@ -137,8 +165,8 @@ class GameScene: SKScene {
         // Remove existing spicy wing if any
         spicyWingNode?.removeFromParent()
         
-        // Create spicy wing as red-orange chicken wing shape
-        let wingRadius: CGFloat = 25
+        // Create spicy wing with size based on level
+        let wingRadius = spicyWingRadius
         spicyWingNode = SKShapeNode(circleOfRadius: wingRadius)
         spicyWingNode?.fillColor = .systemRed
         spicyWingNode?.strokeColor = .orange
@@ -146,6 +174,7 @@ class GameScene: SKScene {
         spicyWingNode?.name = "spicyWing"
         
         // Add flame-like accent (small triangles to indicate spiciness)
+        let flameScale = wingRadius / 25.0 // Scale flames based on wing size
         let flamePositions: [(CGFloat, CGFloat, CGFloat)] = [
             (15, 15, 0.7), (-15, 15, 0.7), (15, -15, 0.7), (-15, -15, 0.7)
         ]
@@ -159,8 +188,8 @@ class GameScene: SKScene {
             let flame = SKShapeNode(path: flamePath)
             flame.fillColor = .yellow
             flame.strokeColor = .yellow
-            flame.position = CGPoint(x: x, y: y)
-            flame.setScale(scale)
+            flame.position = CGPoint(x: x * flameScale, y: y * flameScale)
+            flame.setScale(scale * flameScale)
             spicyWingNode?.addChild(flame)
         }
         
@@ -207,6 +236,10 @@ class GameScene: SKScene {
             targetPosition = location
             recordClick()
             
+        case .levelComplete:
+            // Tap to continue to next level
+            advanceToNextLevel()
+            
         case .gameOver:
             // Tap to restart
             restartGame()
@@ -240,9 +273,87 @@ class GameScene: SKScene {
     private func startGame() {
         gameState = .playing
         score = 0
+        
+        // Set time based on level
+        gameDuration = currentLevel == 1 ? 30.0 : 25.0
         timeRemaining = gameDuration
+        
         lastUpdateTime = 0
+        pizzaMoveTimer = 0
         hudNode.updateTime(Int(ceil(timeRemaining)))
+        hudNode.updateLevel(currentLevel)
+    }
+    
+    private func checkLevelComplete() {
+        guard gameState == .playing else { return }
+        
+        let requiredScore: Int
+        switch currentLevel {
+        case 1:
+            requiredScore = 150
+        case 2:
+            requiredScore = 150 // Same requirement for level 2
+        case 3:
+            requiredScore = 150 // Same requirement for level 3
+        default:
+            return
+        }
+        
+        if score >= requiredScore {
+            levelComplete()
+        }
+    }
+    
+    private func levelComplete() {
+        gameState = .levelComplete
+        targetPosition = nil
+        
+        // Show level complete overlay
+        let messageText = currentLevel == 3 ? "Game Complete!" : "Level \(currentLevel) Complete!"
+        let overlay = GameOverOverlay(size: size, finalScore: score, bestScore: scoreManager.bestScore, customMessage: messageText)
+        gameOverOverlay = overlay
+        addChild(overlay)
+    }
+    
+    private func advanceToNextLevel() {
+        // Remove overlay
+        gameOverOverlay?.removeFromParent()
+        gameOverOverlay = nil
+        
+        if currentLevel >= 3 {
+            // Game complete, show final game over
+            endGame()
+        } else {
+            // Advance to next level
+            currentLevel += 1
+            
+            // Reset state for new level
+            gameState = .ready
+            score = 0
+            spicyWingHits = 0
+            
+            // Set time based on level
+            gameDuration = currentLevel == 1 ? 30.0 : 25.0
+            timeRemaining = gameDuration
+            
+            hudNode.updateScore(0)
+            hudNode.updateTime(Int(ceil(timeRemaining)))
+            hudNode.updateLevel(currentLevel)
+            
+            // Reset click tracking
+            clickTimestamps.removeAll()
+            
+            // Reset chicken position and visibility
+            chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+            chickenNode.alpha = 1.0
+            chickenNode.setScale(1.0)
+            
+            // Remove any spicy wing
+            removeSpicyWing()
+            
+            // Respawn pizza
+            spawnPizza()
+        }
     }
     
     private func endGame() {
@@ -264,13 +375,18 @@ class GameScene: SKScene {
         gameOverOverlay?.removeFromParent()
         gameOverOverlay = nil
         
-        // Reset state
+        // Reset state to level 1
+        currentLevel = 1
         gameState = .ready
         score = 0
         spicyWingHits = 0
+        
+        gameDuration = 30.0
         timeRemaining = gameDuration
+        
         hudNode.updateScore(0)
         hudNode.updateTime(Int(ceil(timeRemaining)))
+        hudNode.updateLevel(currentLevel)
         
         // Reset click tracking
         clickTimestamps.removeAll()
@@ -329,6 +445,15 @@ class GameScene: SKScene {
         
         // Check collision with spicy wing
         checkSpicyWingCollision()
+        
+        // Move pizza every 2 seconds in level 3
+        if currentLevel == 3 {
+            pizzaMoveTimer += deltaTime
+            if pizzaMoveTimer >= pizzaMoveInterval {
+                pizzaMoveTimer = 0
+                repositionPizza()
+            }
+        }
     }
     
     private func moveChickenToward(_ target: CGPoint, deltaTime: TimeInterval) {

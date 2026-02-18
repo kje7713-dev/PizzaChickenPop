@@ -9,7 +9,7 @@ class GameOverOverlay: SKNode {
     private let bestLabel: SKLabelNode
     private let restartLabel: SKLabelNode
     
-    init(size: CGSize, finalScore: Int, bestScore: Int) {
+    init(size: CGSize, finalScore: Int, bestScore: Int, customMessage: String? = nil) {
         // Semi-transparent background
         backgroundNode = SKShapeNode(rectOf: size)
         backgroundNode.fillColor = SKColor.black.withAlphaComponent(0.7)
@@ -19,7 +19,7 @@ class GameOverOverlay: SKNode {
         
         // Title
         titleLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        titleLabel.text = "Game Over"
+        titleLabel.text = customMessage ?? "Game Over"
         titleLabel.fontSize = 48
         titleLabel.fontColor = .white
         titleLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 80)
@@ -43,7 +43,8 @@ class GameOverOverlay: SKNode {
         
         // Restart prompt
         restartLabel = SKLabelNode(fontNamed: "Helvetica")
-        restartLabel.text = "Tap to Restart"
+        let promptText = customMessage != nil ? "Tap to Continue" : "Tap to Restart"
+        restartLabel.text = promptText
         restartLabel.fontSize = 24
         restartLabel.fontColor = .lightGray
         restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 100)
