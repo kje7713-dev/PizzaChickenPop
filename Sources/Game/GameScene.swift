@@ -25,7 +25,10 @@ class GameScene: SKScene {
     
     // MARK: - Movement
     private var targetPosition: CGPoint?
-    private let moveSpeed: CGFloat = 200.0
+    private let baseSpeed: CGFloat = 200.0
+    private var clickTimestamps: [TimeInterval] = []
+    private let clickRateWindow: TimeInterval = 1.0 // Track clicks in last 1 second
+    private let speedMultiplierPerClick: CGFloat = 0.3 // 30% speed boost per click/second
     
     // MARK: - Layout Constants
     private let edgeMargin: CGFloat = 80
@@ -134,15 +137,40 @@ class GameScene: SKScene {
             // First tap starts the game
             startGame()
             targetPosition = location
+            recordClick()
             
         case .playing:
             // Set target position for chicken to move toward
             targetPosition = location
+            recordClick()
             
         case .gameOver:
             // Tap to restart
             restartGame()
         }
+    }
+    
+    // MARK: - Click Rate Tracking
+    private func recordClick() {
+        let currentTime = Date().timeIntervalSinceReferenceDate
+        clickTimestamps.append(currentTime)
+    }
+    
+    private func getCurrentClickRate() -> CGFloat {
+        let currentTime = Date().timeIntervalSinceReferenceDate
+        let cutoffTime = currentTime - clickRateWindow
+        
+        // Clean up old clicks outside the tracking window
+        clickTimestamps.removeAll { $0 < cutoffTime }
+        
+        // Return current click count
+        return CGFloat(clickTimestamps.count)
+    }
+    
+    private func getCurrentMoveSpeed() -> CGFloat {
+        let clickRate = getCurrentClickRate()
+        let speedMultiplier = 1.0 + (clickRate * speedMultiplierPerClick)
+        return baseSpeed * speedMultiplier
     }
     
     // MARK: - Game Flow
@@ -179,6 +207,9 @@ class GameScene: SKScene {
         timeRemaining = gameDuration
         hudNode.updateScore(0)
         hudNode.updateTime(Int(ceil(timeRemaining)))
+        
+        // Reset click tracking
+        clickTimestamps.removeAll()
         
         // Reset chicken position
         chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -240,8 +271,9 @@ class GameScene: SKScene {
             return
         }
         
-        // Move toward target
-        let speed = moveSpeed * CGFloat(deltaTime)
+        // Move toward target with dynamic speed based on click rate
+        let currentSpeed = getCurrentMoveSpeed()
+        let speed = currentSpeed * CGFloat(deltaTime)
         let moveDistance = min(speed, distance)
         let angle = atan2(dy, dx)
         
