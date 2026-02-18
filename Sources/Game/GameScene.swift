@@ -6,6 +6,7 @@ class GameScene: SKScene {
     // MARK: - Game Nodes
     private var chickenNode: SKShapeNode!
     private var pizzaNode: SKShapeNode!
+    private var spicyWingNode: SKShapeNode?
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
     
@@ -16,6 +17,7 @@ class GameScene: SKScene {
             hudNode?.updateScore(score)
         }
     }
+    private var spicyWingHits: Int = 0
     private var timeRemaining: TimeInterval = 30.0
     private let gameDuration: TimeInterval = 30.0
     private var lastUpdateTime: TimeInterval = 0
@@ -34,6 +36,10 @@ class GameScene: SKScene {
     private let edgeMargin: CGFloat = 80
     private let collisionDistance: CGFloat = 60
     private let stopThreshold: CGFloat = 5
+    
+    // MARK: - Spicy Wing Constants
+    private let spicyWingSpawnChance: Double = 0.3 // 30% chance to spawn after eating pizza
+    private let maxSpicyWingHits: Int = 3
     
     // MARK: - Scene Lifecycle
     override func didMove(to view: SKView) {
@@ -127,6 +133,63 @@ class GameScene: SKScene {
         pizzaNode.position = CGPoint(x: randomX, y: randomY)
     }
     
+    private func spawnSpicyWing() {
+        // Remove existing spicy wing if any
+        spicyWingNode?.removeFromParent()
+        
+        // Create spicy wing as red-orange chicken wing shape
+        let wingRadius: CGFloat = 25
+        spicyWingNode = SKShapeNode(circleOfRadius: wingRadius)
+        spicyWingNode?.fillColor = .systemRed
+        spicyWingNode?.strokeColor = .orange
+        spicyWingNode?.lineWidth = 3
+        spicyWingNode?.name = "spicyWing"
+        
+        // Add flame-like accent (small triangles to indicate spiciness)
+        let flamePositions: [(CGFloat, CGFloat, CGFloat)] = [
+            (15, 15, 0.7), (-15, 15, 0.7), (15, -15, 0.7), (-15, -15, 0.7)
+        ]
+        for (x, y, scale) in flamePositions {
+            let flamePath = CGMutablePath()
+            flamePath.move(to: CGPoint(x: 0, y: -8))
+            flamePath.addLine(to: CGPoint(x: -6, y: 0))
+            flamePath.addLine(to: CGPoint(x: 6, y: 0))
+            flamePath.closeSubpath()
+            
+            let flame = SKShapeNode(path: flamePath)
+            flame.fillColor = .yellow
+            flame.strokeColor = .yellow
+            flame.position = CGPoint(x: x, y: y)
+            flame.setScale(scale)
+            spicyWingNode?.addChild(flame)
+        }
+        
+        // Position at random location
+        repositionSpicyWing()
+        
+        addChild(spicyWingNode!)
+    }
+    
+    private func repositionSpicyWing() {
+        guard let spicyWingNode = spicyWingNode else { return }
+        
+        // Keep at least 80px away from all edges
+        let minX = edgeMargin
+        let maxX = size.width - edgeMargin
+        let minY = edgeMargin
+        let maxY = size.height - edgeMargin
+        
+        let randomX = CGFloat.random(in: minX...maxX)
+        let randomY = CGFloat.random(in: minY...maxY)
+        
+        spicyWingNode.position = CGPoint(x: randomX, y: randomY)
+    }
+    
+    private func removeSpicyWing() {
+        spicyWingNode?.removeFromParent()
+        spicyWingNode = nil
+    }
+    
     // MARK: - Touch Handling
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
@@ -204,6 +267,7 @@ class GameScene: SKScene {
         // Reset state
         gameState = .ready
         score = 0
+        spicyWingHits = 0
         timeRemaining = gameDuration
         hudNode.updateScore(0)
         hudNode.updateTime(Int(ceil(timeRemaining)))
@@ -211,8 +275,13 @@ class GameScene: SKScene {
         // Reset click tracking
         clickTimestamps.removeAll()
         
-        // Reset chicken position
+        // Reset chicken position and visibility
         chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        chickenNode.alpha = 1.0
+        chickenNode.setScale(1.0)
+        
+        // Remove any spicy wing
+        removeSpicyWing()
         
         // Respawn pizza
         repositionPizza()
@@ -257,6 +326,9 @@ class GameScene: SKScene {
         
         // Check collision with pizza
         checkPizzaCollision()
+        
+        // Check collision with spicy wing
+        checkSpicyWingCollision()
     }
     
     private func moveChickenToward(_ target: CGPoint, deltaTime: TimeInterval) {
@@ -311,6 +383,80 @@ class GameScene: SKScene {
             self?.repositionPizza()
         }
         pizzaNode.run(SKAction.sequence([delay, reposition]))
+        
+        // Randomly spawn a spicy wing
+        if Double.random(in: 0...1) < spicyWingSpawnChance {
+            let wingDelay = SKAction.wait(forDuration: 0.3)
+            let spawn = SKAction.run { [weak self] in
+                self?.spawnSpicyWing()
+            }
+            run(SKAction.sequence([wingDelay, spawn]))
+        }
+    }
+    
+    private func checkSpicyWingCollision() {
+        guard let wing = spicyWingNode else { return }
+        
+        let dx = chickenNode.position.x - wing.position.x
+        let dy = chickenNode.position.y - wing.position.y
+        let distance = sqrt(dx * dx + dy * dy)
+        
+        if distance < collisionDistance {
+            handleSpicyWingHit()
+        }
+    }
+    
+    private func handleSpicyWingHit() {
+        // Increment hit counter
+        spicyWingHits += 1
+        
+        // Remove the spicy wing
+        removeSpicyWing()
+        
+        // Shake chicken animation to show hit
+        let shakeLeft = SKAction.moveBy(x: -10, y: 0, duration: 0.05)
+        let shakeRight = SKAction.moveBy(x: 20, y: 0, duration: 0.05)
+        let shakeBack = SKAction.moveBy(x: -10, y: 0, duration: 0.05)
+        let shakeSequence = SKAction.sequence([shakeLeft, shakeRight, shakeBack])
+        chickenNode.run(shakeSequence)
+        
+        // Check if reached max hits
+        if spicyWingHits >= maxSpicyWingHits {
+            explodeChicken()
+        }
+    }
+    
+    private func explodeChicken() {
+        // Play explosion animation
+        let scaleUp = SKAction.scale(to: 1.5, duration: 0.2)
+        let fadeOut = SKAction.fadeOut(withDuration: 0.2)
+        let explosionSequence = SKAction.group([scaleUp, fadeOut])
+        
+        chickenNode.run(explosionSequence) { [weak self] in
+            // End the game after explosion
+            self?.endGame()
+        }
+        
+        // Create simple particle effect (feathers)
+        for _ in 0..<20 {
+            let feather = SKShapeNode(circleOfRadius: 5)
+            feather.fillColor = .systemYellow
+            feather.strokeColor = .orange
+            feather.position = chickenNode.position
+            feather.zPosition = -1
+            addChild(feather)
+            
+            let randomAngle = CGFloat.random(in: 0...(2 * .pi))
+            let randomDistance = CGFloat.random(in: 50...150)
+            let dx = cos(randomAngle) * randomDistance
+            let dy = sin(randomAngle) * randomDistance
+            
+            let move = SKAction.moveBy(x: dx, y: dy, duration: 0.5)
+            let fade = SKAction.fadeOut(withDuration: 0.5)
+            let remove = SKAction.removeFromParent()
+            let sequence = SKAction.sequence([SKAction.group([move, fade]), remove])
+            feather.run(sequence)
+        }
     }
     
     // MARK: - Layout Updates
