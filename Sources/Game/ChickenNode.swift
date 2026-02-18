@@ -51,12 +51,13 @@ final class ChickenNode: SKSpriteNode {
         
         // Try UIImage(named:) first - this is the recommended way for loading images in iOS
         // It searches in the main bundle and handles various resource locations automatically
+        // For bundled resources (not asset catalogs), it can accept path-like names
         let resourceName = "\(subdirectory)/\(baseName)"
         if let image = UIImage(named: resourceName) {
             return SKTexture(image: image)
         }
         
-        // Try with just the base name (in case resources are flattened)
+        // Try with just the base name (in case resources are flattened or in asset catalog)
         if let image = UIImage(named: baseName) {
             return SKTexture(image: image)
         }
@@ -86,11 +87,11 @@ final class ChickenNode: SKSpriteNode {
         print("""
             ⚠️ Warning: Failed to load texture '\(baseName).\(ext)'.
             Attempted locations:
-            - UIImage(named:): \(resourceName)
-            - UIImage(named:): \(baseName)
-            - Bundle.main: \(subdirectory)/\(baseName).\(ext)
+            - UIImage(named:) with subdirectory: \(resourceName)
+            - UIImage(named:) base name only: \(baseName)
+            - Bundle.main with subdirectory: \(subdirectory)/\(baseName).\(ext)
             - Bundle.main root: \(baseName).\(ext)
-            - Class bundle: \(subdirectory)/\(baseName).\(ext)
+            - Class bundle with subdirectory: \(subdirectory)/\(baseName).\(ext)
             
             Using fallback placeholder texture. Please ensure the Resources directory is properly bundled.
             """)
