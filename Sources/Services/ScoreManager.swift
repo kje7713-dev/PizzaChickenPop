@@ -1,27 +1,20 @@
 import Foundation
 
-/// Manages local high scores and date recording
+/// Manages best score persistence via UserDefaults
 class ScoreManager {
     private let defaults = UserDefaults.standard
-    private let highScoreKey = "highScore"
-    private let highScoreDateKey = "highScoreDate"
+    private let bestScoreKey = "bestScore"
     
-    var highScore: Int {
-        get { defaults.integer(forKey: highScoreKey) }
+    var bestScore: Int {
+        get { defaults.integer(forKey: bestScoreKey) }
         set {
-            defaults.set(newValue, forKey: highScoreKey)
-            defaults.set(Date().timeIntervalSince1970, forKey: highScoreDateKey)
+            defaults.set(newValue, forKey: bestScoreKey)
         }
     }
     
-    var highScoreDate: Date? {
-        let timestamp = defaults.double(forKey: highScoreDateKey)
-        return timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : nil
-    }
-    
-    func checkAndUpdateHighScore(_ score: Int) -> Bool {
-        if score > highScore {
-            highScore = score
+    func checkAndUpdateBestScore(_ score: Int) -> Bool {
+        if score > bestScore {
+            bestScore = score
             return true
         }
         return false
