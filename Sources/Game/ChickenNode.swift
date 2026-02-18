@@ -44,20 +44,21 @@ final class ChickenNode: SKSpriteNode {
         // Try Bundle.module first (for SwiftPM resources)
         #if canImport(Foundation)
         if let moduleBundle = Bundle(identifier: "com.Savagebydesign.PizzaChicken"),
-           let url = moduleBundle.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory) {
-            return SKTexture(imageNamed: url.lastPathComponent, options: nil)
+           let url = moduleBundle.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
+           let image = UIImage(contentsOfFile: url.path) {
+            return SKTexture(image: image)
         }
         #endif
         
         // Fallback to Bundle.main
-        if let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory) {
-            let image = UIImage(contentsOfFile: url.path)!
+        if let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
+           let image = UIImage(contentsOfFile: url.path) {
             return SKTexture(image: image)
         }
         
         // Try without subdirectory as a last resort
-        if let url = Bundle.main.url(forResource: baseName, withExtension: ext) {
-            let image = UIImage(contentsOfFile: url.path)!
+        if let url = Bundle.main.url(forResource: baseName, withExtension: ext),
+           let image = UIImage(contentsOfFile: url.path) {
             return SKTexture(image: image)
         }
         
