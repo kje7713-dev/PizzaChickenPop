@@ -4,5 +4,6 @@ import Foundation
 enum GameState {
     case ready
     case playing
+    case levelComplete
     case gameOver
 }
