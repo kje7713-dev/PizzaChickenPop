@@ -80,8 +80,9 @@ class GameScene: SKScene {
         setupHUD()
         spawnPizza()
         
-        // Load best score
+        // Load best score and set initial level
         hudNode.updateBest(scoreManager.bestScore)
+        hudNode.updateLevel(currentLevel)
     }
     
     // MARK: - Setup Methods
