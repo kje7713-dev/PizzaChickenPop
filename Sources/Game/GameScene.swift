@@ -97,9 +97,9 @@ class GameScene: SKScene {
         chickenNode = ChickenNode()
         chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         
-        // Scale to match the previous circle size (radius was 50)
-        // The sprite images are likely much larger, so scale them down
-        chickenNode.setScale(0.15)
+        // Scale chicken sprite appropriately
+        // Original sprites are 1024x1024, scale to ~120 pixels (about 2x pizza size)
+        chickenNode.setScale(0.12)
         
         addChild(chickenNode)
     }
@@ -328,7 +328,7 @@ class GameScene: SKScene {
             // Reset chicken position and visibility
             chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
             chickenNode.alpha = 1.0
-            chickenNode.setScale(1.0)
+            chickenNode.setScale(0.12)
             
             // Remove any spicy wing
             removeSpicyWing()
@@ -376,7 +376,7 @@ class GameScene: SKScene {
         // Reset chicken position and visibility
         chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         chickenNode.alpha = 1.0
-        chickenNode.setScale(1.0)
+        chickenNode.setScale(0.12)
         
         // Remove any spicy wing
         removeSpicyWing()
