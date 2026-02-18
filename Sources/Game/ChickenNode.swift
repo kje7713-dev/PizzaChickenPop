@@ -34,44 +34,72 @@ final class ChickenNode: SKSpriteNode {
     }
     
     // MARK: - Texture Loading
-    /// Loads a texture from the bundled resources
+    /// Loads a texture from the bundled resources with graceful fallback
+    ///
+    /// Resource lookup strategy:
+    /// 1. Try Bundle.main with subdirectory path (standard XcodeGen resource bundling)
+    /// 2. Try Bundle.main without subdirectory (alternative bundling configuration)
+    /// 3. If SwiftPM module bundle is available, try it as well
+    /// 4. If all attempts fail, return a safe fallback texture instead of crashing
+    ///
     /// - Parameter baseName: The base name of the image file (e.g., "IMG_3731")
-    /// - Returns: The loaded SKTexture
+    /// - Returns: The loaded SKTexture, or a fallback colored texture if loading fails
     private static func texture(named baseName: String) -> SKTexture {
         let subdirectory = "Resources/Sprites/Chicken"
         let ext = "PNG"
         
-        // Try Bundle.module first (for SwiftPM resources)
-        #if canImport(Foundation)
-        if let moduleBundle = Bundle(identifier: "com.Savagebydesign.PizzaChicken"),
-           let url = moduleBundle.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
-           let image = UIImage(contentsOfFile: url.path) {
-            return SKTexture(image: image)
-        }
-        #endif
-        
-        // Fallback to Bundle.main
+        // Try Bundle.main with subdirectory first (standard XcodeGen configuration)
         if let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
            let image = UIImage(contentsOfFile: url.path) {
             return SKTexture(image: image)
         }
         
-        // Try without subdirectory as a last resort
+        // Try Bundle.main without subdirectory as fallback
         if let url = Bundle.main.url(forResource: baseName, withExtension: ext),
            let image = UIImage(contentsOfFile: url.path) {
             return SKTexture(image: image)
         }
         
-        // If all attempts fail, provide a clear error message
-        fatalError("""
-            Failed to load texture '\(baseName).\(ext)'.
+        // Try class bundle if available (for package-based builds)
+        // Use Bundle(for:) to get the bundle containing this class, avoiding hardcoded identifiers
+        let classBundle = Bundle(for: ChickenNode.self)
+        if let url = classBundle.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
+           let image = UIImage(contentsOfFile: url.path) {
+            return SKTexture(image: image)
+        }
+        
+        // Graceful fallback: return a colored placeholder texture instead of crashing
+        // This ensures the app launches even if texture resources are missing
+        print("""
+            ⚠️ Warning: Failed to load texture '\(baseName).\(ext)'.
             Attempted locations:
-            - Bundle.module: \(subdirectory)/\(baseName).\(ext)
             - Bundle.main: \(subdirectory)/\(baseName).\(ext)
             - Bundle.main root: \(baseName).\(ext)
+            - Class bundle: \(subdirectory)/\(baseName).\(ext)
             
-            Please ensure the Resources directory is properly bundled in the Xcode project.
+            Using fallback placeholder texture. Please ensure the Resources directory is properly bundled.
             """)
+        
+        // Create a simple colored rectangle as fallback (orange/yellow chicken color)
+        return SKTexture(image: Self.createFallbackImage())
+    }
+    
+    /// Creates a fallback placeholder image when texture loading fails
+    /// - Returns: A UIImage with a solid color representing a missing texture
+    /// - Note: The 100x100 size is a reasonable default; SpriteKit will scale it appropriately based on the node's size
+    private static func createFallbackImage() -> UIImage {
+        let size = CGSize(width: 100, height: 100)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            // Use a chicken-like orange/yellow color for the fallback
+            UIColor(red: 1.0, green: 0.7, blue: 0.3, alpha: 1.0).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            
+            // Add a simple border to make it clear this is a placeholder
+            UIColor.black.setStroke()
+            context.cgContext.setLineWidth(4)
+            context.stroke(CGRect(origin: .zero, size: size))
+        }
     }
     
     // MARK: - Animation Methods
