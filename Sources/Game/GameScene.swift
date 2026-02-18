@@ -26,6 +26,12 @@ class GameScene: SKScene {
     private var pizzaMoveTimer: TimeInterval = 0
     private let pizzaMoveInterval: TimeInterval = 2.0
     
+    // MARK: - Level Configuration
+    private let requiredScorePerLevel: Int = 150
+    private var levelDuration: TimeInterval {
+        return currentLevel == 1 ? 30.0 : 25.0
+    }
+    
     // MARK: - Managers
     private let scoreManager = ScoreManager()
     
@@ -276,7 +282,7 @@ class GameScene: SKScene {
         score = 0
         
         // Set time based on level
-        gameDuration = currentLevel == 1 ? 30.0 : 25.0
+        gameDuration = levelDuration
         timeRemaining = gameDuration
         
         lastUpdateTime = 0
@@ -288,19 +294,7 @@ class GameScene: SKScene {
     private func checkLevelComplete() {
         guard gameState == .playing else { return }
         
-        let requiredScore: Int
-        switch currentLevel {
-        case 1:
-            requiredScore = 150
-        case 2:
-            requiredScore = 150 // Same requirement for level 2
-        case 3:
-            requiredScore = 150 // Same requirement for level 3
-        default:
-            return
-        }
-        
-        if score >= requiredScore {
+        if score >= requiredScorePerLevel {
             levelComplete()
         }
     }
@@ -334,7 +328,7 @@ class GameScene: SKScene {
             spicyWingHits = 0
             
             // Set time based on level
-            gameDuration = currentLevel == 1 ? 30.0 : 25.0
+            gameDuration = levelDuration
             timeRemaining = gameDuration
             
             hudNode.updateScore(0)
