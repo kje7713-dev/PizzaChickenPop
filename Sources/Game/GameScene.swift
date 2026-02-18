@@ -376,7 +376,7 @@ class GameScene: SKScene {
         // Reset chicken position and visibility
         chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         chickenNode.alpha = 1.0
-        chickenNode.setScale(0.11)
+        chickenNode.setScale(0.12)
         
         // Remove any spicy wing
         removeSpicyWing()
