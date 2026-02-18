@@ -60,15 +60,13 @@ final class ChickenNode: SKSpriteNode {
             return SKTexture(image: image)
         }
         
-        // Try SwiftPM module bundle if available (for package-based builds)
-        #if canImport(Foundation)
+        // Try class bundle if available (for package-based builds)
         // Use Bundle(for:) to get the bundle containing this class, avoiding hardcoded identifiers
         let classBundle = Bundle(for: ChickenNode.self)
         if let url = classBundle.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
            let image = UIImage(contentsOfFile: url.path) {
             return SKTexture(image: image)
         }
-        #endif
         
         // Graceful fallback: return a colored placeholder texture instead of crashing
         // This ensures the app launches even if texture resources are missing
@@ -88,6 +86,7 @@ final class ChickenNode: SKSpriteNode {
     
     /// Creates a fallback placeholder image when texture loading fails
     /// - Returns: A UIImage with a solid color representing a missing texture
+    /// - Note: The 100x100 size is a reasonable default; SpriteKit will scale it appropriately based on the node's size
     private static func createFallbackImage() -> UIImage {
         let size = CGSize(width: 100, height: 100)
         let renderer = UIGraphicsImageRenderer(size: size)
