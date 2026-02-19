@@ -11,6 +11,10 @@ final class ChickenNode: SKSpriteNode {
     // MARK: - Animation State
     private var isMunching: Bool = false
     
+    // MARK: - Constants
+    /// Expected pixel dimensions of each PNG sprite file
+    private static let spriteTextureSize: CGFloat = 1024
+    
     // MARK: - Initialization
     init() {
         // Load textures
@@ -21,11 +25,15 @@ final class ChickenNode: SKSpriteNode {
             Self.texture(named: "IMG_3734")
         ]
         
-        // Initialize with idle texture
-        super.init(texture: idleTexture, color: .clear, size: idleTexture.size())
+        // Initialize with a fixed size matching the actual PNG dimensions (1024x1024).
+        // Using idleTexture.size() causes the sprite to be tiny (~20 pt) when
+        // texture loading falls back to the 100x100 placeholder image.
+        let textureSize = CGSize(width: Self.spriteTextureSize, height: Self.spriteTextureSize)
+        super.init(texture: idleTexture, color: .clear, size: textureSize)
         
         // Set initial state
         self.name = "chicken"
+        self.zPosition = 1
         setIdle()
     }
     
@@ -68,6 +76,12 @@ final class ChickenNode: SKSpriteNode {
             return SKTexture(image: image)
         }
         
+        // Try Bundle.main with "Resources/" prefix (XcodeGen folder-reference bundling)
+        if let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: "Resources/\(subdirectory)"),
+           let image = UIImage(contentsOfFile: url.path) {
+            return SKTexture(image: image)
+        }
+        
         // Try Bundle.main without subdirectory as fallback
         if let url = Bundle.main.url(forResource: baseName, withExtension: ext),
            let image = UIImage(contentsOfFile: url.path) {
@@ -90,6 +104,7 @@ final class ChickenNode: SKSpriteNode {
             - UIImage(named:) with subdirectory: \(resourceName)
             - UIImage(named:) base name only: \(baseName)
             - Bundle.main with subdirectory: \(subdirectory)/\(baseName).\(ext)
+            - Bundle.main with Resources/ prefix: Resources/\(subdirectory)/\(baseName).\(ext)
             - Bundle.main root: \(baseName).\(ext)
             - Class bundle with subdirectory: \(subdirectory)/\(baseName).\(ext)
             
