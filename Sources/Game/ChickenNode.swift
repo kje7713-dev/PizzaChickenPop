@@ -41,24 +41,31 @@ final class ChickenNode: SKSpriteNode {
     
     // MARK: - Texture Loading
     /// Loads a texture from the bundled resources using deterministic Bundle.main URL resolution.
+    /// Tries multiple possible subdirectory paths to accommodate different bundle layouts.
     ///
     /// - Parameter baseName: The base name of the image file (e.g., "IMG_3731")
-    /// - Returns: The loaded SKTexture
-    /// - Note: Calls fatalError if the texture file cannot be found in the bundle.
+    /// - Returns: The loaded SKTexture, or a colored placeholder if the file cannot be found.
     private static func texture(named baseName: String) -> SKTexture {
-        guard let url = Bundle.main.url(
-            forResource: baseName,
-            withExtension: "PNG",
-            subdirectory: "Resources/Sprites/Chicken"
-        ) else {
-            fatalError("Missing chicken texture: \(baseName).PNG in Resources/Sprites/Chicken")
+        let candidates: [String?] = [
+            "Sprites/Chicken",
+            "Resources/Sprites/Chicken",
+            nil
+        ]
+
+        for subdirectory in candidates {
+            guard let url = Bundle.main.url(
+                forResource: baseName,
+                withExtension: "PNG",
+                subdirectory: subdirectory
+            ) else { continue }
+
+            guard let image = UIImage(contentsOfFile: url.path) else { continue }
+
+            return SKTexture(image: image)
         }
 
-        guard let image = UIImage(contentsOfFile: url.path) else {
-            fatalError("Failed to load chicken texture at path: \(url.path)")
-        }
-
-        return SKTexture(image: image)
+        print("Warning: Missing chicken texture \(baseName).PNG – using placeholder")
+        return SKTexture.placeholder(color: .systemPink, size: CGSize(width: spriteTextureSize, height: spriteTextureSize))
     }
     
     // MARK: - Animation Methods
@@ -93,5 +100,18 @@ final class ChickenNode: SKSpriteNode {
         
         let sequence = SKAction.sequence([animateAction, resetState])
         self.run(sequence)
+    }
+}
+
+// MARK: - SKTexture placeholder helper
+private extension SKTexture {
+    /// Returns a solid-colored placeholder texture of the given size.
+    static func placeholder(color: UIColor, size: CGSize) -> SKTexture {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { ctx in
+            color.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+        }
+        return SKTexture(image: image)
     }
 }
