@@ -46,14 +46,18 @@ final class ChickenNode: SKSpriteNode {
     /// - Returns: The loaded SKTexture
     /// - Note: Calls fatalError if the texture file cannot be found in the bundle.
     private static func texture(named baseName: String) -> SKTexture {
-        let subdirectory = "Sprites/Chicken"
-        let ext = "PNG"
-        
-        guard let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: subdirectory),
-              let image = UIImage(contentsOfFile: url.path) else {
-            fatalError("Missing required texture: \(subdirectory)/\(baseName).\(ext) – ensure the Resources directory is bundled correctly.")
+        guard let url = Bundle.main.url(
+            forResource: baseName,
+            withExtension: "PNG",
+            subdirectory: "Resources/Sprites/Chicken"
+        ) else {
+            fatalError("Missing chicken texture: \(baseName).PNG in Resources/Sprites/Chicken")
         }
-        
+
+        guard let image = UIImage(contentsOfFile: url.path) else {
+            fatalError("Failed to load chicken texture at path: \(url.path)")
+        }
+
         return SKTexture(image: image)
     }
     
