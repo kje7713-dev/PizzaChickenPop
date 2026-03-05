@@ -40,32 +40,23 @@ final class ChickenNode: SKSpriteNode {
     }
     
     // MARK: - Texture Loading
-    /// Loads a texture from the bundled resources using deterministic Bundle.main URL resolution.
-    /// Tries multiple possible subdirectory paths to accommodate different bundle layouts.
+    /// Loads a texture using SKTexture(imageNamed:), which works for both bundle resources
+    /// and asset catalogs.
     ///
     /// - Parameter baseName: The base name of the image file (e.g., "IMG_3731")
-    /// - Returns: The loaded SKTexture, or a colored placeholder if the file cannot be found.
+    /// - Returns: The loaded SKTexture, or a colored placeholder if the texture cannot be found.
     private static func texture(named baseName: String) -> SKTexture {
-        let candidates: [String?] = [
-            "Sprites/Chicken",
-            "Resources/Sprites/Chicken",
-            nil
-        ]
+        let texture = SKTexture(imageNamed: baseName)
 
-        for subdirectory in candidates {
-            guard let url = Bundle.main.url(
-                forResource: baseName,
-                withExtension: "PNG",
-                subdirectory: subdirectory
-            ) else { continue }
-
-            guard let image = UIImage(contentsOfFile: url.path) else { continue }
-
-            return SKTexture(image: image)
+        if texture.size() == .zero {
+            print("Warning: Missing chicken texture \(baseName) – using placeholder")
+            return SKTexture.placeholder(
+                color: .systemPink,
+                size: CGSize(width: spriteTextureSize, height: spriteTextureSize)
+            )
         }
 
-        print("Warning: Missing chicken texture \(baseName).PNG – using placeholder")
-        return SKTexture.placeholder(color: .systemPink, size: CGSize(width: spriteTextureSize, height: spriteTextureSize))
+        return texture
     }
     
     // MARK: - Animation Methods
