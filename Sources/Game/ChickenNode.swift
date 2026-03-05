@@ -7,6 +7,7 @@ final class ChickenNode: SKSpriteNode {
     // MARK: - Textures
     private let idleTexture: SKTexture
     private let biteTextures: [SKTexture]
+    private let hitTexture: SKTexture
     
     // MARK: - Animation State
     private var isMunching: Bool = false
@@ -24,6 +25,7 @@ final class ChickenNode: SKSpriteNode {
             Self.texture(named: "IMG_3733"),
             Self.texture(named: "IMG_3734")
         ]
+        hitTexture = Self.texture(named: "ChickenHit")
         
         // Initialize with a fixed size matching the actual PNG dimensions (1024x1024).
         let textureSize = CGSize(width: Self.spriteTextureSize, height: Self.spriteTextureSize)
@@ -88,7 +90,31 @@ final class ChickenNode: SKSpriteNode {
         }
         
         let sequence = SKAction.sequence([animateAction, resetState])
-        self.run(sequence)
+        self.run(sequence, withKey: "munch")
+    }
+    
+    /// Flashes the wing-hit graphic for 2 seconds when the chicken is struck by a spicy wing.
+    func playWingHitFlash() {
+        // Cancel any ongoing munch or previous flash to avoid texture conflicts
+        removeAction(forKey: "munch")
+        removeAction(forKey: "wingHitFlash")
+        isMunching = false
+
+        self.texture = hitTexture
+        self.alpha = 1.0
+
+        // Alternate alpha 0 → 1 every 0.1 s; 10 cycles × 0.2 s = 2.0 s total
+        let fadeOut = SKAction.fadeAlpha(to: 0.0, duration: 0.1)
+        let fadeIn  = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
+        let flashOnce = SKAction.sequence([fadeOut, fadeIn])
+        let flashRepeat = SKAction.repeat(flashOnce, count: 10)
+
+        let restore = SKAction.run { [weak self] in
+            self?.alpha = 1.0
+            self?.setIdle()
+        }
+
+        run(SKAction.sequence([flashRepeat, restore]), withKey: "wingHitFlash")
     }
 }
 
