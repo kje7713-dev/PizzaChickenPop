@@ -40,35 +40,14 @@ final class ChickenNode: SKSpriteNode {
     }
     
     // MARK: - Texture Loading
-    /// Loads a texture by first trying the asset catalog / standard named lookup, then
-    /// falling back to bundled file lookup in known sprite subdirectories.
+    /// Loads a texture from the asset catalog.
     ///
-    /// - Parameter baseName: The base name of the image file (e.g., "IMG_3731")
+    /// - Parameter baseName: The base name of the image asset (e.g., "IMG_3731")
     /// - Returns: The loaded SKTexture, or a colored placeholder if the texture cannot be found.
     private static func texture(named baseName: String) -> SKTexture {
-        // 1) Try asset catalog / standard named lookup first
         let named = SKTexture(imageNamed: baseName)
         if named.size() != .zero {
             return named
-        }
-
-        // 2) Fallback: load from bundled file in subfolders (works for Resources/Sprites/Chicken)
-        let subdirs: [String?] = [
-            "Sprites/Chicken",
-            "Resources/Sprites/Chicken",
-            "Sprites",
-            "Resources/Sprites",
-            nil
-        ]
-        let exts = ["png", "PNG"]
-
-        for subdir in subdirs {
-            for ext in exts {
-                if let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: subdir),
-                   let image = UIImage(contentsOfFile: url.path) {
-                    return SKTexture(image: image)
-                }
-            }
         }
 
         print("Warning: Missing chicken texture \(baseName) – using placeholder")
