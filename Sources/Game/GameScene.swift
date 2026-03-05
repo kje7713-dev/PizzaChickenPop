@@ -5,7 +5,7 @@ class GameScene: SKScene {
     
     // MARK: - Game Nodes
     private var chickenNode: ChickenNode!
-    private var pizzaNode: SKShapeNode!
+    private var pizzaNode: SKSpriteNode!
     private var spicyWingNode: SKShapeNode?
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
@@ -46,6 +46,11 @@ class GameScene: SKScene {
     private let edgeMargin: CGFloat = 80
     private let collisionDistance: CGFloat = 60
     private let stopThreshold: CGFloat = 5
+
+    // MARK: - Pizza Constants
+    private static let pizzaImageName = "Pizza"
+    private let pizzaSizeDefault: CGFloat = 80
+    private let pizzaSizeLevel3: CGFloat = 60
     
     // MARK: - Spicy Wing Constants
     private var spicyWingSpawnChance: Double {
@@ -113,26 +118,11 @@ class GameScene: SKScene {
         // Remove existing pizza if any
         pizzaNode?.removeFromParent()
         
-        // Create pizza with size based on level
-        let pizzaRadius: CGFloat = currentLevel == 3 ? 20 : 30 // Smaller pizzas in level 3
-        pizzaNode = SKShapeNode(circleOfRadius: pizzaRadius)
-        pizzaNode.fillColor = .systemOrange
-        pizzaNode.strokeColor = .brown
-        pizzaNode.lineWidth = 2
+        // Create pizza sprite using asset catalog image
+        let pizzaSize: CGFloat = currentLevel == 3 ? pizzaSizeLevel3 : pizzaSizeDefault
+        let texture = SKTexture(imageNamed: GameScene.pizzaImageName)
+        pizzaNode = SKSpriteNode(texture: texture, size: CGSize(width: pizzaSize, height: pizzaSize))
         pizzaNode.name = "pizza"
-        
-        // Add pepperoni dots (scale with pizza size)
-        let pepperoniScale: CGFloat = currentLevel == 3 ? 0.7 : 1.0
-        let pepperoniPositions: [(CGFloat, CGFloat)] = [
-            (10, 10), (-10, 10), (10, -10), (-10, -10), (0, 0)
-        ]
-        for (x, y) in pepperoniPositions {
-            let pepperoni = SKShapeNode(circleOfRadius: 5 * pepperoniScale)
-            pepperoni.fillColor = .systemRed
-            pepperoni.strokeColor = .systemRed
-            pepperoni.position = CGPoint(x: x * pepperoniScale, y: y * pepperoniScale)
-            pizzaNode.addChild(pepperoni)
-        }
         
         // Position pizza at random location
         repositionPizza()
