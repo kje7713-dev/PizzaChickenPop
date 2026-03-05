@@ -547,6 +547,9 @@ class GameScene: SKScene {
         let shakeSequence = SKAction.sequence([shakeLeft, shakeRight, shakeBack])
         chickenNode.run(shakeSequence)
         
+        // Flash the wing-hit graphic on the chicken for 2 seconds
+        chickenNode.playWingHitFlash()
+        
         // Check if reached max hits
         if spicyWingHits >= maxSpicyWingHits {
             explodeChicken()
