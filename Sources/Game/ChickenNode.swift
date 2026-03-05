@@ -40,23 +40,42 @@ final class ChickenNode: SKSpriteNode {
     }
     
     // MARK: - Texture Loading
-    /// Loads a texture using SKTexture(imageNamed:), which works for both bundle resources
-    /// and asset catalogs.
+    /// Loads a texture by first trying the asset catalog / standard named lookup, then
+    /// falling back to bundled file lookup in known sprite subdirectories.
     ///
     /// - Parameter baseName: The base name of the image file (e.g., "IMG_3731")
     /// - Returns: The loaded SKTexture, or a colored placeholder if the texture cannot be found.
     private static func texture(named baseName: String) -> SKTexture {
-        let texture = SKTexture(imageNamed: baseName)
-
-        if texture.size() == .zero {
-            print("Warning: Missing chicken texture \(baseName) – using placeholder")
-            return SKTexture.placeholder(
-                color: .systemPink,
-                size: CGSize(width: spriteTextureSize, height: spriteTextureSize)
-            )
+        // 1) Try asset catalog / standard named lookup first
+        let named = SKTexture(imageNamed: baseName)
+        if named.size() != .zero {
+            return named
         }
 
-        return texture
+        // 2) Fallback: load from bundled file in subfolders (works for Resources/Sprites/Chicken)
+        let subdirs: [String?] = [
+            "Sprites/Chicken",
+            "Resources/Sprites/Chicken",
+            "Sprites",
+            "Resources/Sprites",
+            nil
+        ]
+        let exts = ["png", "PNG"]
+
+        for subdir in subdirs {
+            for ext in exts {
+                if let url = Bundle.main.url(forResource: baseName, withExtension: ext, subdirectory: subdir),
+                   let image = UIImage(contentsOfFile: url.path) {
+                    return SKTexture(image: image)
+                }
+            }
+        }
+
+        print("Warning: Missing chicken texture \(baseName) – using placeholder")
+        return SKTexture.placeholder(
+            color: .systemPink,
+            size: CGSize(width: spriteTextureSize, height: spriteTextureSize)
+        )
     }
     
     // MARK: - Animation Methods
