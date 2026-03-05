@@ -6,7 +6,7 @@ class GameScene: SKScene {
     // MARK: - Game Nodes
     private var chickenNode: ChickenNode!
     private var pizzaNode: SKSpriteNode!
-    private var spicyWingNode: SKShapeNode?
+    private var spicyWingNode: SKSpriteNode?
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
     
@@ -149,33 +149,11 @@ class GameScene: SKScene {
         // Remove existing spicy wing if any
         spicyWingNode?.removeFromParent()
         
-        // Create spicy wing with size based on level
-        let wingRadius = spicyWingRadius
-        spicyWingNode = SKShapeNode(circleOfRadius: wingRadius)
-        spicyWingNode?.fillColor = .systemRed
-        spicyWingNode?.strokeColor = .orange
-        spicyWingNode?.lineWidth = 3
+        // Create spicy wing sprite using asset catalog image
+        let wingDiameter = spicyWingRadius * 2
+        let texture = SKTexture(imageNamed: "SpicyWing")
+        spicyWingNode = SKSpriteNode(texture: texture, size: CGSize(width: wingDiameter, height: wingDiameter))
         spicyWingNode?.name = "spicyWing"
-        
-        // Add flame-like accent (small triangles to indicate spiciness)
-        let flameScale = wingRadius / 25.0 // Scale flames based on wing size
-        let flamePositions: [(CGFloat, CGFloat, CGFloat)] = [
-            (15, 15, 0.7), (-15, 15, 0.7), (15, -15, 0.7), (-15, -15, 0.7)
-        ]
-        for (x, y, scale) in flamePositions {
-            let flamePath = CGMutablePath()
-            flamePath.move(to: CGPoint(x: 0, y: -8))
-            flamePath.addLine(to: CGPoint(x: -6, y: 0))
-            flamePath.addLine(to: CGPoint(x: 6, y: 0))
-            flamePath.closeSubpath()
-            
-            let flame = SKShapeNode(path: flamePath)
-            flame.fillColor = .yellow
-            flame.strokeColor = .yellow
-            flame.position = CGPoint(x: x * flameScale, y: y * flameScale)
-            flame.setScale(scale * flameScale)
-            spicyWingNode?.addChild(flame)
-        }
         
         // Position at random location
         repositionSpicyWing()
