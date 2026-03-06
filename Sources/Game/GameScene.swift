@@ -9,7 +9,6 @@ class GameScene: SKScene {
     private var spicyWingNode: SKSpriteNode?
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
-    private var backgroundMusicNode: SKAudioNode?
     
     // MARK: - Game State
     private var gameState: GameState = .ready
@@ -104,24 +103,12 @@ class GameScene: SKScene {
         hudNode.updateLives(livesRemaining)
         
         // Start looping background music
-        startBackgroundMusic()
-    }
-    
-    private func startBackgroundMusic() {
-        guard let url = Bundle.main.url(forResource: "563603__badoink__chicken-loop", withExtension: "wav") else {
-            print("Warning: Background music file not found")
-            return
-        }
-        let musicNode = SKAudioNode(url: url)
-        musicNode.autoplayLooped = true
-        backgroundMusicNode = musicNode
-        addChild(musicNode)
+        SoundManager.shared.startBackgroundMusic()
     }
     
     override func willMove(from view: SKView) {
         super.willMove(from: view)
-        backgroundMusicNode?.removeFromParent()
-        backgroundMusicNode = nil
+        SoundManager.shared.stopBackgroundMusic()
     }
     
     // MARK: - Setup Methods
