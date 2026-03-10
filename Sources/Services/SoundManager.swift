@@ -4,7 +4,7 @@ import AVFoundation
 final class SoundManager {
     static let shared = SoundManager()
 
-    private let backgroundMusicFilename = "563603__badoink__chicken-loop"
+    private let backgroundMusicFilename = "chicken_loop"
     private var backgroundPlayer: AVAudioPlayer?
 
     private init() {}
@@ -15,25 +15,11 @@ final class SoundManager {
             withExtension: "wav",
             subdirectory: "Audio"
         ) {
+            print("Resolved background music URL: \(url)")
             return url
         }
 
-        if let url = Bundle.main.url(
-            forResource: backgroundMusicFilename,
-            withExtension: "wav",
-            subdirectory: "Sounds"
-        ) {
-            return url
-        }
-
-        if let url = Bundle.main.url(
-            forResource: backgroundMusicFilename,
-            withExtension: "wav"
-        ) {
-            return url
-        }
-
-        print("Warning: Missing background music file \(backgroundMusicFilename).wav")
+        print("Warning: Missing background music file \(backgroundMusicFilename).wav in Audio bundle folder")
         return nil
     }
 

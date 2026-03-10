@@ -28,7 +28,10 @@ targets:
       - Sources
       - Assets.xcassets
     resources:
-      - Resources
+      - path: Resources/Info.plist
+        buildPhase: none
+      - path: Resources/Audio
+        type: folder
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
