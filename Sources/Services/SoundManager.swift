@@ -13,6 +13,14 @@ final class SoundManager {
         if let url = Bundle.main.url(
             forResource: backgroundMusicFilename,
             withExtension: "wav",
+            subdirectory: "Audio"
+        ) {
+            return url
+        }
+
+        if let url = Bundle.main.url(
+            forResource: backgroundMusicFilename,
+            withExtension: "wav",
             subdirectory: "Sounds"
         ) {
             return url
