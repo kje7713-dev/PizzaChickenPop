@@ -33,25 +33,86 @@ final class SoundManager {
         }
     }
 
+    // DIAGNOSTIC: Temporary debug implementation to identify why background audio is not playing.
+    // Replace with production implementation once root cause is determined.
     func startBackgroundMusic() {
-        if backgroundPlayer?.isPlaying == true {
-            return
-        }
 
-        guard let url = backgroundMusicURL() else { return }
+        print("=== START BACKGROUND MUSIC DEBUG ===")
 
-        configureAudioSession()
+        let session = AVAudioSession.sharedInstance()
 
         do {
-            backgroundPlayer = try AVAudioPlayer(contentsOf: url)
-            backgroundPlayer?.numberOfLoops = -1
-            backgroundPlayer?.volume = 0.5
-            backgroundPlayer?.prepareToPlay()
-            let success = backgroundPlayer?.play() ?? false
-            print("Background music play success: \(success)")
+            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setActive(true)
+
+            print("Audio session category:", session.category.rawValue)
+            print("Audio outputs:", session.currentRoute.outputs.map { "\($0.portType.rawValue): \($0.portName)" })
+            print("Secondary audio silenced:", session.secondaryAudioShouldBeSilencedHint)
+
         } catch {
-            print("Warning: Failed to start background music: \(error)")
+            print("AUDIO SESSION ERROR:", error)
         }
+
+        let fm = FileManager.default
+
+        print("Bundle resourcePath:", Bundle.main.resourcePath ?? "nil")
+
+        if let root = Bundle.main.resourcePath,
+           let rootItems = try? fm.contentsOfDirectory(atPath: root) {
+            print("Bundle root contents:", rootItems)
+        }
+
+        if let audioPath = Bundle.main.path(
+            forResource: "chicken_loop",
+            ofType: "wav",
+            inDirectory: "Audio"
+        ) {
+
+            print("FOUND Audio/chicken_loop.wav at:", audioPath)
+
+            do {
+
+                let attrs = try fm.attributesOfItem(atPath: audioPath)
+                print("File attributes:", attrs)
+
+                backgroundPlayer = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: audioPath))
+
+                backgroundPlayer?.numberOfLoops = -1
+                backgroundPlayer?.volume = 1.0
+
+                let prepared = backgroundPlayer?.prepareToPlay() ?? false
+                let played = backgroundPlayer?.play() ?? false
+
+                print("prepareToPlay:", prepared)
+                print("duration:", backgroundPlayer?.duration ?? -1)
+                print("format settings:", backgroundPlayer?.settings ?? [:])
+                print("isPlaying:", backgroundPlayer?.isPlaying ?? false)
+                print("play() returned:", played)
+
+            } catch {
+                print("PLAYER INIT/PLAY ERROR:", error)
+            }
+
+        } else {
+
+            print("NOT FOUND: Audio/chicken_loop.wav")
+
+        }
+
+        if let rootPath = Bundle.main.path(
+            forResource: "chicken_loop",
+            ofType: "wav"
+        ) {
+
+            print("FOUND chicken_loop.wav at bundle root:", rootPath)
+
+        } else {
+
+            print("NOT FOUND at bundle root either")
+
+        }
+
+        print("=== END BACKGROUND MUSIC DEBUG ===")
     }
 
     func stopBackgroundMusic() {
