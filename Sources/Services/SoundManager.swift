@@ -4,7 +4,7 @@ import AVFoundation
 final class SoundManager {
     static let shared = SoundManager()
 
-    private let backgroundMusicFilename = "chicken_loop"
+    private let backgroundMusicFilename = "pixelated_victory"
     private var backgroundPlayer: AVAudioPlayer?
 
     private init() {}
@@ -12,14 +12,14 @@ final class SoundManager {
     private func backgroundMusicURL() -> URL? {
         if let url = Bundle.main.url(
             forResource: backgroundMusicFilename,
-            withExtension: "wav",
+            withExtension: "mp3",
             subdirectory: "Audio"
         ) {
             print("Resolved background music URL: \(url)")
             return url
         }
 
-        print("Warning: Missing background music file \(backgroundMusicFilename).wav in Audio bundle folder")
+        print("Warning: Missing background music file \(backgroundMusicFilename).mp3 in Audio bundle folder")
         return nil
     }
 
