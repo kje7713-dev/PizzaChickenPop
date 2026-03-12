@@ -30,7 +30,7 @@ targets:
     resources:
       - path: Resources/Info.plist
         buildPhase: none
-      - path: Resources/Audio/chicken_loop.wav
+      - Resources
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
@@ -41,6 +41,28 @@ targets:
         CODE_SIGN_STYLE: Manual
         PROVISIONING_PROFILE_SPECIFIER: match AppStore com.Savagebydesign.PizzaChicken
         DEVELOPMENT_TEAM: ${APPLE_TEAM_ID}
+    postBuildScripts:
+      - name: Copy chicken_loop.wav into app bundle
+        script: |
+          set -e
+
+          SRC_FILE="${PROJECT_DIR}/Resources/Audio/chicken_loop.wav"
+          DEST_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Audio"
+          DEST_FILE="${DEST_DIR}/chicken_loop.wav"
+
+          echo "Checking source audio at: ${SRC_FILE}"
+
+          if [ ! -f "${SRC_FILE}" ]; then
+            echo "ERROR: Missing source file ${SRC_FILE}"
+            exit 1
+          fi
+
+          mkdir -p "${DEST_DIR}"
+          cp "${SRC_FILE}" "${DEST_FILE}"
+
+          echo "Copied audio to ${DEST_FILE}"
+          ls -la "${DEST_DIR}"
+
     scheme:
       testTargets: []
       gatherCoverageData: false
