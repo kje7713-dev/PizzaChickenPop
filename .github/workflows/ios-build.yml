@@ -59,6 +59,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
       # If you use SPM only and no workspace, you can remove WORKSPACE env and use PROJECT.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
