@@ -30,8 +30,7 @@ targets:
     resources:
       - path: Resources/Info.plist
         buildPhase: none
-      - path: Resources/Audio
-        type: folder
+      - path: Resources/Audio/chicken_loop.wav
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
