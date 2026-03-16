@@ -30,7 +30,7 @@ final class SoundManager {
         do {
             backgroundPlayer = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: path))
             backgroundPlayer?.numberOfLoops = -1
-            backgroundPlayer?.volume = 1.0
+            backgroundPlayer?.volume = 0.25
             backgroundPlayer?.prepareToPlay()
             backgroundPlayer?.play()
         } catch {
