@@ -6,7 +6,7 @@ class GameScene: SKScene {
     // MARK: - Game Nodes
     private var chickenNode: ChickenNode!
     private var pizzaNode: SKSpriteNode!
-    private var spicyWingNode: SKSpriteNode?
+    private var spicyWingNodes: [SKSpriteNode] = []
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
 
@@ -30,12 +30,11 @@ class GameScene: SKScene {
     private var timeRemaining: TimeInterval = 30.0
     private var gameDuration: TimeInterval = 30.0
     private var lastUpdateTime: TimeInterval = 0
-    private var pizzaMoveTimer: TimeInterval = 0
     private var lastChompSoundTime: TimeInterval = -999
     private var lastMommySoundTime: TimeInterval = -999
     private let chompSoundCooldown: TimeInterval = 0.15
     private let mommySoundCooldown: TimeInterval = 0.30
-    private let pizzaMoveInterval: TimeInterval = 2.0
+    private var pizzaVelocity: CGVector = .zero
     
     // MARK: - Level Configuration
     private let requiredScorePerLevel: Int = 150
@@ -79,18 +78,20 @@ class GameScene: SKScene {
     private var spicyWingRadius: CGFloat {
         switch currentLevel {
         case 1:
-            return 25
+            return baseSpicyWingRadius
         case 2:
             return 35 // Larger for level 2
         case 3:
-            return 45 // Even larger for level 3
+            return baseSpicyWingRadius * 3 // 200% bigger than base for level 3
         default:
-            return 25
+            return baseSpicyWingRadius
         }
     }
     private let maxSpicyWingHits: Int = 3
-    private var spicyWingSpawnTime: TimeInterval? = nil
+    private let baseSpicyWingRadius: CGFloat = 25
+    private var spicyWingSpawnTimes: [TimeInterval] = []
     private let spicyWingGracePeriod: TimeInterval = 0.25
+    private let wingSpacingMultiplier: CGFloat = 3
     
     private var livesRemaining: Int {
         return maxSpicyWingHits - spicyWingHits
@@ -154,6 +155,11 @@ class GameScene: SKScene {
         repositionPizza()
         
         addChild(pizzaNode)
+        
+        // Start continuous movement for level 3
+        if currentLevel == 3 {
+            initPizzaVelocity()
+        }
     }
     
     private func repositionPizza() {
@@ -188,59 +194,78 @@ class GameScene: SKScene {
     }
     
     private func spawnSpicyWing() {
-        // Remove existing spicy wing if any
-        spicyWingNode?.removeFromParent()
+        // Remove existing spicy wings
+        removeSpicyWing()
         
-        // Create spicy wing sprite using asset catalog image
-        let wingDiameter = spicyWingRadius * 2
-        let texture = SKTexture(imageNamed: "SpicyWing")
-        spicyWingNode = SKSpriteNode(texture: texture, size: CGSize(width: wingDiameter, height: wingDiameter))
-        spicyWingNode?.name = "spicyWing"
+        // Determine how many wings to spawn
+        let wingCount = currentLevel == 3 ? 3 : 1
         
-        // Position at random location safely away from chicken
-        repositionSpicyWing()
+        for _ in 0..<wingCount {
+            // Create spicy wing sprite using asset catalog image
+            let wingDiameter = spicyWingRadius * 2
+            let texture = SKTexture(imageNamed: "SpicyWing")
+            let wingNode = SKSpriteNode(texture: texture, size: CGSize(width: wingDiameter, height: wingDiameter))
+            wingNode.name = "spicyWing"
+            
+            spicyWingNodes.append(wingNode)
+            addChild(wingNode)
+            spicyWingSpawnTimes.append(lastUpdateTime)
+        }
         
-        addChild(spicyWingNode!)
-        
-        // Record spawn time for grace period
-        spicyWingSpawnTime = lastUpdateTime
+        // Position all wings safely away from chicken and each other
+        repositionAllSpicyWings()
     }
     
-    private func repositionSpicyWing() {
-        guard let spicyWingNode = spicyWingNode else { return }
-        
+    private func repositionAllSpicyWings() {
         let minX = edgeMargin
         let maxX = size.width - edgeMargin
         let minY = edgeMargin
         let maxY = size.height - edgeMargin
-        
         let chickenRadius = max(chickenNode.frame.width, chickenNode.frame.height) * 0.5
         let wingRadius = spicyWingRadius
         let safeDistance = collisionDistance + chickenRadius + wingRadius + 10
         
-        for _ in 0..<30 {
-            let x = CGFloat.random(in: minX...maxX)
-            let y = CGFloat.random(in: minY...maxY)
-            let candidate = CGPoint(x: x, y: y)
-            
-            let dx = candidate.x - chickenNode.position.x
-            let dy = candidate.y - chickenNode.position.y
-            let d = sqrt(dx * dx + dy * dy)
-            
-            if d > safeDistance {
-                spicyWingNode.position = candidate
-                return
+        var placedPositions: [CGPoint] = []
+        
+        for wingNode in spicyWingNodes {
+            var placed = false
+            for _ in 0..<30 {
+                let x = CGFloat.random(in: minX...maxX)
+                let y = CGFloat.random(in: minY...maxY)
+                let candidate = CGPoint(x: x, y: y)
+                
+                let dx = candidate.x - chickenNode.position.x
+                let dy = candidate.y - chickenNode.position.y
+                let d = sqrt(dx * dx + dy * dy)
+                
+                // Check distance from chicken
+                guard d > safeDistance else { continue }
+                
+                // Check distance from already-placed wings
+                let tooCloseToOther = placedPositions.contains { other in
+                    let odx = candidate.x - other.x
+                    let ody = candidate.y - other.y
+                    return sqrt(odx * odx + ody * ody) < wingRadius * wingSpacingMultiplier
+                }
+                guard !tooCloseToOther else { continue }
+                
+                wingNode.position = candidate
+                placedPositions.append(candidate)
+                placed = true
+                break
+            }
+            if !placed {
+                // Fallback: corner farthest from chicken
+                wingNode.position = CGPoint(x: maxX, y: maxY)
+                placedPositions.append(wingNode.position)
             }
         }
-        
-        // Fallback: corner farthest from chicken
-        spicyWingNode.position = CGPoint(x: maxX, y: maxY)
     }
     
     private func removeSpicyWing() {
-        spicyWingNode?.removeFromParent()
-        spicyWingNode = nil
-        spicyWingSpawnTime = nil
+        spicyWingNodes.forEach { $0.removeFromParent() }
+        spicyWingNodes.removeAll()
+        spicyWingSpawnTimes.removeAll()
     }
     
     // MARK: - Touch Handling
@@ -304,10 +329,14 @@ class GameScene: SKScene {
         timeRemaining = gameDuration
         
         lastUpdateTime = 0
-        pizzaMoveTimer = 0
         hudNode.updateTime(Int(ceil(timeRemaining)))
         hudNode.updateLevel(currentLevel)
         hudNode.updateLives(livesRemaining)
+        
+        // Start continuous pizza movement for level 3
+        if currentLevel == 3 {
+            initPizzaVelocity()
+        }
     }
     
     private func checkLevelComplete() {
@@ -465,14 +494,36 @@ class GameScene: SKScene {
         // Check collision with spicy wing
         checkSpicyWingCollision()
         
-        // Move pizza every 2 seconds in level 3
+        // Continuously move pizza in level 3
         if currentLevel == 3 {
-            pizzaMoveTimer += deltaTime
-            if pizzaMoveTimer >= pizzaMoveInterval {
-                pizzaMoveTimer = 0
-                repositionPizza()
-            }
+            updatePizzaMovement(deltaTime: deltaTime)
         }
+    }
+    
+    private func initPizzaVelocity() {
+        let speed: CGFloat = 120
+        let angle = CGFloat.random(in: 0...(2 * .pi))
+        pizzaVelocity = CGVector(dx: cos(angle) * speed, dy: sin(angle) * speed)
+    }
+    
+    private func updatePizzaMovement(deltaTime: TimeInterval) {
+        guard let pizza = pizzaNode else { return }
+        let minX = edgeMargin
+        let maxX = size.width - edgeMargin
+        let minY = edgeMargin
+        let maxY = size.height - edgeMargin
+        
+        var pos = pizza.position
+        pos.x += pizzaVelocity.dx * CGFloat(deltaTime)
+        pos.y += pizzaVelocity.dy * CGFloat(deltaTime)
+        
+        // Bounce off edges
+        if pos.x < minX { pos.x = minX; pizzaVelocity.dx = abs(pizzaVelocity.dx) }
+        if pos.x > maxX { pos.x = maxX; pizzaVelocity.dx = -abs(pizzaVelocity.dx) }
+        if pos.y < minY { pos.y = minY; pizzaVelocity.dy = abs(pizzaVelocity.dy) }
+        if pos.y > maxY { pos.y = maxY; pizzaVelocity.dy = -abs(pizzaVelocity.dy) }
+        
+        pizza.position = pos
     }
     
     private func moveChickenToward(_ target: CGPoint, deltaTime: TimeInterval) {
@@ -557,15 +608,18 @@ class GameScene: SKScene {
     }
     
     private func checkSpicyWingCollision() {
-        guard let wing = spicyWingNode else { return }
-        if let spawnTime = spicyWingSpawnTime, lastUpdateTime - spawnTime < spicyWingGracePeriod { return }
-        
-        let dx = chickenNode.position.x - wing.position.x
-        let dy = chickenNode.position.y - wing.position.y
-        let distance = sqrt(dx * dx + dy * dy)
-        
-        if distance < collisionDistance {
-            handleSpicyWingHit()
+        for (index, wing) in spicyWingNodes.enumerated() {
+            let spawnTime = index < spicyWingSpawnTimes.count ? spicyWingSpawnTimes[index] : 0
+            if lastUpdateTime - spawnTime < spicyWingGracePeriod { continue }
+            
+            let dx = chickenNode.position.x - wing.position.x
+            let dy = chickenNode.position.y - wing.position.y
+            let distance = sqrt(dx * dx + dy * dy)
+            
+            if distance < collisionDistance + spicyWingRadius - baseSpicyWingRadius {
+                handleSpicyWingHit()
+                return
+            }
         }
     }
     
