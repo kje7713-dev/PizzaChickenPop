@@ -31,6 +31,10 @@ class GameScene: SKScene {
     private var gameDuration: TimeInterval = 30.0
     private var lastUpdateTime: TimeInterval = 0
     private var pizzaMoveTimer: TimeInterval = 0
+    private var lastChompSoundTime: TimeInterval = -999
+    private var lastMommySoundTime: TimeInterval = -999
+    private let chompSoundCooldown: TimeInterval = 0.15
+    private let mommySoundCooldown: TimeInterval = 0.30
     private let pizzaMoveInterval: TimeInterval = 2.0
     
     // MARK: - Level Configuration
@@ -507,13 +511,24 @@ class GameScene: SKScene {
         }
     }
     
+    private func playChompSoundIfReady() {
+        guard lastUpdateTime - lastChompSoundTime >= chompSoundCooldown else { return }
+        lastChompSoundTime = lastUpdateTime
+        if let chompSound { run(chompSound) }
+    }
+
+    private func playMommySoundIfReady() {
+        guard lastUpdateTime - lastMommySoundTime >= mommySoundCooldown else { return }
+        lastMommySoundTime = lastUpdateTime
+        if let mommySound { run(mommySound) }
+    }
+
     private func handlePizzaEat() {
         // Increment score
         score += 1
         
-        // Play score and bite sounds
-        if let scoreSound { run(scoreSound) }
-        if let chompSound { run(chompSound) }
+        // Play bite sound with cooldown
+        playChompSoundIfReady()
         
         // Play chicken bite animation
         chickenNode.playMunch()
@@ -559,8 +574,8 @@ class GameScene: SKScene {
         spicyWingHits += 1
         hudNode.updateLives(livesRemaining)
         
-        // Play mommy sound
-        if let mommySound { run(mommySound) }
+        // Play mommy sound with cooldown
+        playMommySoundIfReady()
         
         // Remove the spicy wing
         removeSpicyWing()
