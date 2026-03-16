@@ -9,7 +9,13 @@ class GameScene: SKScene {
     private var spicyWingNode: SKSpriteNode?
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
-    private var audioDebugLabel: SKLabelNode?
+
+    // MARK: - Sound Actions
+    private let chompSound = SoundManager.shared.soundAction(name: "chomp")
+    private let mommySound = SoundManager.shared.soundAction(name: "mommy")
+    private let scoreSound = SoundManager.shared.soundAction(name: "score")
+    private let explodeSound = SoundManager.shared.soundAction(name: "explode")
+    private let levelWinSound = SoundManager.shared.soundAction(name: "level_win")
     
     // MARK: - Game State
     private var gameState: GameState = .ready
@@ -96,7 +102,6 @@ class GameScene: SKScene {
         // Setup game elements
         setupChicken()
         setupHUD()
-        setupAudioDebugLabel()
         spawnPizza()
         
         // Load best score and set initial level
@@ -106,7 +111,6 @@ class GameScene: SKScene {
         
         // Start looping background music
         SoundManager.shared.startBackgroundMusic()
-        audioDebugLabel?.text = SoundManager.shared.debugStatus
     }
     
     override func willMove(from view: SKView) {
@@ -132,21 +136,6 @@ class GameScene: SKScene {
         addChild(hudNode)
     }
 
-    private func setupAudioDebugLabel() {
-        let label = SKLabelNode(fontNamed: "Menlo")
-        label.fontSize = 14
-        label.fontColor = .black
-        label.horizontalAlignmentMode = .left
-        label.verticalAlignmentMode = .top
-        label.position = CGPoint(x: 20, y: size.height - 110)
-        label.zPosition = 1000
-        label.numberOfLines = 0
-        label.preferredMaxLayoutWidth = size.width - 40
-        label.text = "Audio debug pending"
-        audioDebugLabel = label
-        addChild(label)
-    }
-    
     private func spawnPizza() {
         // Remove existing pizza if any
         pizzaNode?.removeFromParent()
@@ -328,6 +317,9 @@ class GameScene: SKScene {
     private func levelComplete() {
         gameState = .levelComplete
         targetPosition = nil
+        
+        // Play level win sound
+        if let levelWinSound { run(levelWinSound) }
         
         // Show level complete overlay
         let messageText = currentLevel == 3 ? "Game Complete!" : "Level \(currentLevel) Complete!"
@@ -519,6 +511,10 @@ class GameScene: SKScene {
         // Increment score
         score += 1
         
+        // Play score and bite sounds
+        if let scoreSound { run(scoreSound) }
+        if let chompSound { run(chompSound) }
+        
         // Play chicken bite animation
         chickenNode.playMunch()
         
@@ -563,6 +559,9 @@ class GameScene: SKScene {
         spicyWingHits += 1
         hudNode.updateLives(livesRemaining)
         
+        // Play mommy sound
+        if let mommySound { run(mommySound) }
+        
         // Remove the spicy wing
         removeSpicyWing()
         
@@ -583,6 +582,9 @@ class GameScene: SKScene {
     }
     
     private func explodeChicken() {
+        // Play explosion sound
+        if let explodeSound { run(explodeSound) }
+        
         // Play explosion animation
         let scaleUp = SKAction.scale(to: 1.5, duration: 0.2)
         let fadeOut = SKAction.fadeOut(withDuration: 0.2)
@@ -621,9 +623,6 @@ class GameScene: SKScene {
         
         // Reposition HUD
         hudNode?.repositionForSize(size)
-        
-        // Reposition audio debug label
-        audioDebugLabel?.position = CGPoint(x: 20, y: size.height - 110)
         
         // Reposition chicken if in ready state
         if gameState == .ready, let chickenNode = chickenNode {
