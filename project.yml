@@ -42,25 +42,37 @@ targets:
         PROVISIONING_PROFILE_SPECIFIER: match AppStore com.Savagebydesign.PizzaChicken
         DEVELOPMENT_TEAM: ${APPLE_TEAM_ID}
     postBuildScripts:
-      - name: Copy chicken_loop.wav into app bundle
+      - name: Copy all audio files into app bundle
         script: |
           set -e
 
-          SRC_FILE="${PROJECT_DIR}/Resources/Audio/chicken_loop.wav"
+          SRC_DIR="${PROJECT_DIR}/Resources/Audio"
           DEST_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Audio"
-          DEST_FILE="${DEST_DIR}/chicken_loop.wav"
-
-          echo "Checking source audio at: ${SRC_FILE}"
-
-          if [ ! -f "${SRC_FILE}" ]; then
-            echo "ERROR: Missing source file ${SRC_FILE}"
-            exit 1
-          fi
 
           mkdir -p "${DEST_DIR}"
-          cp "${SRC_FILE}" "${DEST_FILE}"
 
-          echo "Copied audio to ${DEST_FILE}"
+          FILES=(
+            "chicken_loop.wav"
+            "chomp.mp3"
+            "mommy.mp3"
+            "score.mp3"
+            "explode.mp3"
+            "level_win.mp3"
+          )
+
+          for file in "${FILES[@]}"; do
+            SRC_FILE="${SRC_DIR}/${file}"
+            DEST_FILE="${DEST_DIR}/${file}"
+
+            if [ -f "${SRC_FILE}" ]; then
+              cp "${SRC_FILE}" "${DEST_FILE}"
+              echo "Copied ${file} -> ${DEST_FILE}"
+            else
+              echo "Warning: Missing audio file ${SRC_FILE}"
+            fi
+          done
+
+          echo "Final Audio bundle contents:"
           ls -la "${DEST_DIR}"
 
     scheme:
