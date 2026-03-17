@@ -116,6 +116,11 @@ class GameScene: SKScene {
         
         // Start looping background music
         SoundManager.shared.startBackgroundMusic()
+
+        // Authenticate with Game Center using this scene's view controller as the presentation context
+        if let vc = view.window?.rootViewController {
+            GameCenterManager.shared.authenticate(from: vc)
+        }
     }
     
     override func willMove(from view: SKView) {

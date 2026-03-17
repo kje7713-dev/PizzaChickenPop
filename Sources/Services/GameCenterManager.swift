@@ -12,29 +12,37 @@ final class GameCenterManager: NSObject {
     private(set) var lastSubmissionSucceeded = false
     private(set) var lastSubmissionMessage = "Game Center not checked yet"
 
-    func authenticate() {
+    func authenticate(from viewController: UIViewController?) {
         let localPlayer = GKLocalPlayer.local
-        localPlayer.authenticateHandler = { [weak self] viewController, error in
-            if let error = error {
-                print("[GameCenter] Authentication error: \(error.localizedDescription)")
-                self?.isAuthenticated = false
-                self?.lastSubmissionMessage = "Game Center unavailable"
+
+        localPlayer.authenticateHandler = { [weak self] gcVC, error in
+            guard let self = self else { return }
+
+            if let gcVC = gcVC {
+                print("Presenting Game Center login UI")
+
+                viewController?.present(gcVC, animated: true)
+
+                self.lastSubmissionMessage = "Signing into Game Center..."
                 return
             }
-            if let vc = viewController {
-                self?.lastSubmissionMessage = "Game Center sign-in required"
-                if let rootVC = (UIApplication.shared.delegate as? AppDelegate)?.window?.rootViewController {
-                    rootVC.present(vc, animated: true)
-                }
-            } else if localPlayer.isAuthenticated {
-                self?.isAuthenticated = true
-                self?.lastSubmissionMessage = "Game Center connected"
-                print("[GameCenter] Authenticated as \(localPlayer.displayName)")
-            } else {
-                self?.isAuthenticated = false
-                self?.lastSubmissionMessage = "Game Center unavailable"
-                print("[GameCenter] Not authenticated")
+
+            if let error = error {
+                print("Game Center auth error:", error.localizedDescription)
+                self.isAuthenticated = false
+                self.lastSubmissionMessage = "Game Center unavailable"
+                return
             }
+
+            self.isAuthenticated = localPlayer.isAuthenticated
+
+            if self.isAuthenticated {
+                self.lastSubmissionMessage = "Game Center connected"
+            } else {
+                self.lastSubmissionMessage = "Game Center not connected"
+            }
+
+            print("Game Center authenticated:", self.isAuthenticated)
         }
     }
 
