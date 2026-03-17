@@ -7,7 +7,7 @@ final class GameCenterManager: NSObject {
     static let shared = GameCenterManager()
     private override init() {}
 
-    private let leaderboardID = "pizza_chicken_highscore"
+    private let leaderboardID = "ABC123"
     private(set) var isAuthenticated = false
     private(set) var lastSubmissionSucceeded = false
     private(set) var lastSubmissionMessage = "Game Center not checked yet"
