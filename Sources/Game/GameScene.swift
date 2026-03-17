@@ -411,6 +411,9 @@ class GameScene: SKScene {
         scoreManager.checkAndUpdateBestScore(score)
         hudNode.updateBest(scoreManager.bestScore)
         
+        // Submit score to Game Center leaderboard
+        GameCenterManager.shared.submitScore(score)
+        
         // Show game over overlay
         let overlay = GameOverOverlay(size: size, finalScore: score, bestScore: scoreManager.bestScore)
         gameOverOverlay = overlay
