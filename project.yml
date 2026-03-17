@@ -1,5 +1,10 @@
 name: PizzaChicken
 
+packages:
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads
+    from: "11.2.0"
+
 options:
   bundleIdPrefix: com.Savagebydesign
   deploymentTarget:
@@ -27,6 +32,8 @@ targets:
     sources:
       - Sources
       - Assets.xcassets
+    dependencies:
+      - package: GoogleMobileAds
     resources:
       - path: Resources/Info.plist
         buildPhase: none
