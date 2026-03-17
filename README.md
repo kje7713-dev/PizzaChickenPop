@@ -20,7 +20,7 @@ Tech Stack:
 - Submit score to Game Center leaderboard
 - Reset and replay
 
-> **Game Center Leaderboard ID:** `pizza_chicken_highscore`
+> **Game Center Leaderboard ID:** `ABC123`
 > This identifier must match exactly in App Store Connect under your app's leaderboard configuration.
 
 ---
