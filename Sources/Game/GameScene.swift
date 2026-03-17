@@ -290,8 +290,15 @@ class GameScene: SKScene {
             advanceToNextLevel()
             
         case .gameOver:
-            // Tap to restart
-            restartGame()
+            // Check if the leaderboard button was tapped
+            let tappedNodes = nodes(at: location)
+            if tappedNodes.contains(where: { $0.name == GameOverOverlay.leaderboardButtonName }) {
+                if let vc = view?.window?.rootViewController {
+                    GameCenterManager.shared.showLeaderboard(from: vc)
+                }
+            } else {
+                restartGame()
+            }
         }
     }
     
@@ -406,16 +413,22 @@ class GameScene: SKScene {
     private func endGame() {
         gameState = .gameOver
         targetPosition = nil
-        
+
         // Update best score
         scoreManager.checkAndUpdateBestScore(score)
         hudNode.updateBest(scoreManager.bestScore)
-        
+
         // Submit score to Game Center leaderboard
         GameCenterManager.shared.submitScore(score)
-        
-        // Show game over overlay
-        let overlay = GameOverOverlay(size: size, finalScore: score, bestScore: scoreManager.bestScore)
+
+        // Show game over overlay with Game Center status and leaderboard button
+        let overlay = GameOverOverlay(
+            size: size,
+            finalScore: score,
+            bestScore: scoreManager.bestScore,
+            gcStatus: GameCenterManager.shared.lastSubmissionMessage,
+            showLeaderboardButton: true
+        )
         gameOverOverlay = overlay
         addChild(overlay)
     }
