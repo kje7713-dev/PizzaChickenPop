@@ -121,6 +121,9 @@ class GameScene: SKScene {
         if let vc = view.window?.rootViewController {
             GameCenterManager.shared.authenticate(from: vc)
         }
+
+        // Preload rewarded ad
+        AdManager.shared.loadAd()
     }
     
     override func willMove(from view: SKView) {
@@ -301,6 +304,8 @@ class GameScene: SKScene {
                 if let vc = view?.window?.rootViewController {
                     GameCenterManager.shared.showLeaderboard(from: vc)
                 }
+            } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.removeAdsButtonName }) {
+                IAPManager.shared.purchaseRemoveAds()
             } else {
                 restartGame()
             }
@@ -425,6 +430,15 @@ class GameScene: SKScene {
 
         // Submit score to Game Center leaderboard
         GameCenterManager.shared.submitScore(score)
+
+        // Show rewarded ad if ads have not been removed
+        if !IAPManager.shared.adsRemoved,
+           let sceneView = self.view,
+           let vc = sceneView.window?.rootViewController {
+            AdManager.shared.showAd(from: vc) {
+                print("reward granted")
+            }
+        }
 
         // Show game over overlay with Game Center status and leaderboard button
         let overlay = GameOverOverlay(

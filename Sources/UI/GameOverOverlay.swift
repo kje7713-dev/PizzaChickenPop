@@ -9,10 +9,14 @@ class GameOverOverlay: SKNode {
     private let bestLabel: SKLabelNode
     private let gcStatusLabel: SKLabelNode
     private let leaderboardButton: SKLabelNode
+    private let removeAdsButton: SKLabelNode
     private let restartLabel: SKLabelNode
 
     /// Name used for hit-testing the leaderboard button in touchesBegan
     static let leaderboardButtonName = "leaderboardButton"
+
+    /// Name used for hit-testing the remove-ads button in touchesBegan
+    static let removeAdsButtonName = "removeAdsButton"
 
     init(size: CGSize, finalScore: Int, bestScore: Int,
          customMessage: String? = nil,
@@ -66,13 +70,22 @@ class GameOverOverlay: SKNode {
         leaderboardButton.zPosition = 201
         leaderboardButton.name = GameOverOverlay.leaderboardButtonName
 
+        // REMOVE ADS button
+        removeAdsButton = SKLabelNode(fontNamed: "Helvetica-Bold")
+        removeAdsButton.text = "REMOVE ADS - $1.99"
+        removeAdsButton.fontSize = 20
+        removeAdsButton.fontColor = SKColor.green
+        removeAdsButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 155)
+        removeAdsButton.zPosition = 201
+        removeAdsButton.name = GameOverOverlay.removeAdsButtonName
+
         // Restart prompt (shifted down to make room)
         restartLabel = SKLabelNode(fontNamed: "Helvetica")
         let promptText = customMessage != nil ? "Tap to Continue" : "Tap to Restart"
         restartLabel.text = promptText
         restartLabel.fontSize = 24
         restartLabel.fontColor = .lightGray
-        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 165)
+        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 205)
         restartLabel.zPosition = 201
 
         super.init()
@@ -83,6 +96,7 @@ class GameOverOverlay: SKNode {
         addChild(bestLabel)
         addChild(gcStatusLabel)
         if showLeaderboardButton { addChild(leaderboardButton) }
+        if !IAPManager.shared.adsRemoved { addChild(removeAdsButton) }
         addChild(restartLabel)
 
         // Animate in
