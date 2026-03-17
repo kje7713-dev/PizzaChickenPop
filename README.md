@@ -17,8 +17,11 @@ Tech Stack:
 
 - Tap/double-tap pizza → chicken "eats" → score increments
 - At threshold → chicken explodes (cartoony particles) → run ends
-- Submit score to Game Center leaderboard (optional)
+- Submit score to Game Center leaderboard
 - Reset and replay
+
+> **Game Center Leaderboard ID:** `pizza_chicken_highscore`
+> This identifier must match exactly in App Store Connect under your app's leaderboard configuration.
 
 ---
 

@@ -16,6 +16,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window?.rootViewController = viewController
         window?.makeKeyAndVisible()
         
+        // Authenticate with Game Center
+        GameCenterManager.shared.authenticate()
+        
         return true
     }
 }
