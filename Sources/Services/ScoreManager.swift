@@ -12,6 +12,7 @@ class ScoreManager {
         }
     }
     
+    @discardableResult
     func checkAndUpdateBestScore(_ score: Int) -> Bool {
         if score > bestScore {
             bestScore = score
