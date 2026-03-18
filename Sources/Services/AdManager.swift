@@ -11,7 +11,7 @@ final class AdManager {
     func initializeIfNeeded() {
         guard !didInitialize else { return }
         didInitialize = true
-        MobileAds.shared.start(completionHandler: nil)
+        GADMobileAds.sharedInstance().start(completionHandler: nil)
     }
 
     func loadAd() {
