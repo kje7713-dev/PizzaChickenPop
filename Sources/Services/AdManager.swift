@@ -6,8 +6,17 @@ final class AdManager {
     static let shared = AdManager()
 
     private var rewardedAd: GADRewardedAd?
+    private var didInitialize = false
+
+    func initializeIfNeeded() {
+        guard !didInitialize else { return }
+        didInitialize = true
+        MobileAds.shared.start(completionHandler: nil)
+    }
 
     func loadAd() {
+        initializeIfNeeded()
+
         let request = GADRequest()
         GADRewardedAd.load(
             withAdUnitID: "ca-app-pub-3940256099942544/1712485313", // test ID

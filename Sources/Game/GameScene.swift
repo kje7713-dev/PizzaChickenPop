@@ -121,9 +121,6 @@ class GameScene: SKScene {
         if let vc = view.window?.rootViewController {
             GameCenterManager.shared.authenticate(from: vc)
         }
-
-        // Preload rewarded ad
-        AdManager.shared.loadAd()
     }
     
     override func willMove(from view: SKView) {
@@ -354,6 +351,9 @@ class GameScene: SKScene {
         if currentLevel == 3 {
             initPizzaVelocity()
         }
+
+        // Preload rewarded ad now that the game is starting
+        AdManager.shared.loadAd()
     }
     
     private func checkLevelComplete() {
