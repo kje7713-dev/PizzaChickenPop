@@ -6,6 +6,7 @@ class HUDNode: SKNode {
     private let scoreLabel: SKLabelNode
     private let timeLabel: SKLabelNode
     private let bestLabel: SKLabelNode
+    private let runScoreLabel: SKLabelNode
     private let levelLabel: SKLabelNode
     private let livesLabel: SKLabelNode
     
@@ -42,6 +43,16 @@ class HUDNode: SKNode {
         bestLabel.text = "Best: 0"
         bestLabel.zPosition = 100
         
+        // Run score label (below best, top-left)
+        runScoreLabel = SKLabelNode(fontNamed: "Helvetica")
+        runScoreLabel.fontSize = 18
+        runScoreLabel.fontColor = SKColor(red: 0.0, green: 0.5, blue: 0.0, alpha: 1.0)
+        runScoreLabel.horizontalAlignmentMode = .left
+        runScoreLabel.verticalAlignmentMode = .top
+        runScoreLabel.position = CGPoint(x: margin, y: size.height - margin - 55)
+        runScoreLabel.text = "Run: 0"
+        runScoreLabel.zPosition = 100
+        
         // Level label (center-top)
         levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         levelLabel.fontSize = 28
@@ -67,6 +78,7 @@ class HUDNode: SKNode {
         addChild(scoreLabel)
         addChild(timeLabel)
         addChild(bestLabel)
+        addChild(runScoreLabel)
         addChild(levelLabel)
         addChild(livesLabel)
     }
@@ -87,8 +99,16 @@ class HUDNode: SKNode {
         bestLabel.text = "Best: \(best)"
     }
     
+    func updateRunScore(_ runScore: Int) {
+        runScoreLabel.text = "Run: \(runScore)"
+    }
+    
     func updateLevel(_ level: Int) {
         levelLabel.text = "Level \(level)"
+    }
+    
+    func updateLevelText(_ text: String) {
+        levelLabel.text = text
     }
     
     func updateLives(_ livesRemaining: Int) {
@@ -99,6 +119,7 @@ class HUDNode: SKNode {
         scoreLabel.position = CGPoint(x: margin, y: size.height - margin)
         timeLabel.position = CGPoint(x: size.width - margin, y: size.height - margin)
         bestLabel.position = CGPoint(x: margin, y: size.height - margin - 30)
+        runScoreLabel.position = CGPoint(x: margin, y: size.height - margin - 55)
         levelLabel.position = CGPoint(x: size.width / 2, y: size.height - margin)
         livesLabel.position = CGPoint(x: size.width - margin, y: size.height - margin - 30)
     }
