@@ -26,6 +26,8 @@ class GameScene: SKScene {
             checkLevelComplete()
         }
     }
+    private var runScore: Int = 0
+    private var isBonusRound: Bool = false
     private var spicyWingHits: Int = 0
     private var timeRemaining: TimeInterval = 30.0
     private var gameDuration: TimeInterval = 30.0
@@ -56,6 +58,13 @@ class GameScene: SKScene {
     private let edgeMargin: CGFloat = 80
     private let collisionDistance: CGFloat = 60
     private let stopThreshold: CGFloat = 5
+
+    // MARK: - Scoring Constants
+    private let bonusRoundPizzaPoints: Int = 5
+    private let spicyWingRunScorePenalty: Int = 10
+    private let normalPizzaSpeed: CGFloat = 120
+    private let bonusRoundPizzaSpeed: CGFloat = 340
+    private let bonusRoundDuration: TimeInterval = 15.0
 
     // MARK: - Pizza Constants
     private static let pizzaImageName = "Pizza"
@@ -146,7 +155,7 @@ class GameScene: SKScene {
         let customMsg: String? = isGameOver ? nil : (currentLevel == 3 ? "Game Complete!" : "Level \(currentLevel) Complete!")
         let newOverlay = GameOverOverlay(
             size: size,
-            finalScore: score,
+            finalScore: isGameOver ? runScore : score,
             bestScore: scoreManager.bestScore,
             customMessage: customMsg,
             gcStatus: isGameOver ? GameCenterManager.shared.lastSubmissionMessage : nil,
@@ -390,7 +399,7 @@ class GameScene: SKScene {
     }
     
     private func checkLevelComplete() {
-        guard gameState == .playing else { return }
+        guard gameState == .playing, !isBonusRound else { return }
         
         if score >= requiredScorePerLevel {
             levelComplete()
@@ -398,6 +407,7 @@ class GameScene: SKScene {
     }
     
     private func levelComplete() {
+        awardLevelTimeBonus()
         gameState = .levelComplete
         targetPosition = nil
         
@@ -405,10 +415,23 @@ class GameScene: SKScene {
         if let levelWinSound { run(levelWinSound) }
         
         // Show level complete overlay
-        let messageText = currentLevel == 3 ? "Game Complete!" : "Level \(currentLevel) Complete!"
+        let messageText = currentLevel == 3 ? "Level 3 Complete!" : "Level \(currentLevel) Complete!"
         let overlay = GameOverOverlay(size: size, finalScore: score, bestScore: scoreManager.bestScore, customMessage: messageText)
         gameOverOverlay = overlay
         addChild(overlay)
+    }
+    
+    private func awardLevelTimeBonus() {
+        let multiplier: Int
+        switch currentLevel {
+        case 1: multiplier = 1
+        case 2: multiplier = 2
+        case 3: multiplier = 3
+        default: multiplier = 1
+        }
+        let bonus = max(0, Int(ceil(timeRemaining))) * multiplier
+        runScore += bonus
+        hudNode.updateRunScore(runScore)
     }
     
     private func advanceToNextLevel() {
@@ -417,8 +440,8 @@ class GameScene: SKScene {
         gameOverOverlay = nil
         
         if currentLevel >= 3 {
-            // Game complete, show final game over
-            endGame()
+            // Level 3 cleared – enter bonus round instead of ending immediately
+            startBonusRound()
         } else {
             // Advance to next level
             currentLevel += 1
@@ -453,16 +476,74 @@ class GameScene: SKScene {
         }
     }
     
+    private func startBonusRound() {
+        isBonusRound = true
+        gameState = .playing
+        
+        // Clear target and enemies
+        targetPosition = nil
+        removeSpicyWing()
+        
+        // Reset per-level score (bonus round has no progression gate; only runScore matters)
+        score = 0
+        
+        // Set bonus round timer
+        timeRemaining = bonusRoundDuration
+        gameDuration = bonusRoundDuration
+        lastUpdateTime = 0
+        
+        hudNode.updateTime(Int(bonusRoundDuration))
+        hudNode.updateLevelText("BONUS!")
+        hudNode.updateRunScore(runScore)
+        
+        // Reset click tracking
+        clickTimestamps.removeAll()
+        
+        // Reset chicken position and visibility
+        chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        chickenNode.alpha = 1.0
+        chickenNode.setScale(0.20)
+        
+        // Respawn pizza – initPizzaVelocity will use bonus speed since isBonusRound is true
+        spawnPizza()
+        
+        // Show brief bonus round announcement
+        let bonusLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        bonusLabel.text = "BONUS ROUND!"
+        bonusLabel.fontSize = 48
+        bonusLabel.fontColor = .yellow
+        bonusLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 40)
+        bonusLabel.zPosition = 150
+        addChild(bonusLabel)
+        
+        let subLabel = SKLabelNode(fontNamed: "Helvetica")
+        subLabel.text = "15 SECONDS - PIZZA FRENZY"
+        subLabel.fontSize = 24
+        subLabel.fontColor = .white
+        subLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 20)
+        subLabel.zPosition = 150
+        addChild(subLabel)
+        
+        let fadeSeq = SKAction.sequence([
+            SKAction.wait(forDuration: 2.0),
+            SKAction.fadeOut(withDuration: 0.5),
+            SKAction.removeFromParent()
+        ])
+        bonusLabel.run(fadeSeq)
+        subLabel.run(fadeSeq)
+    }
+    
     private func endGame() {
         gameState = .gameOver
         targetPosition = nil
+        isBonusRound = false
 
-        // Update best score
-        scoreManager.checkAndUpdateBestScore(score)
+        // Update best score using total run score
+        scoreManager.checkAndUpdateBestScore(runScore)
         hudNode.updateBest(scoreManager.bestScore)
 
-        // Submit score to Game Center leaderboard
-        GameCenterManager.shared.submitScore(score)
+        // Submit total run score to Game Center leaderboard
+        GameCenterManager.shared.submitScore(runScore)
 
         // Show rewarded ad if ads have not been removed
         if !IAPManager.shared.adsRemoved,
@@ -473,10 +554,10 @@ class GameScene: SKScene {
             }
         }
 
-        // Show game over overlay with Game Center status and leaderboard button
+        // Show game over overlay with total run score, Game Center status, and leaderboard button
         let overlay = GameOverOverlay(
             size: size,
-            finalScore: score,
+            finalScore: runScore,
             bestScore: scoreManager.bestScore,
             gcStatus: GameCenterManager.shared.lastSubmissionMessage,
             showLeaderboardButton: true
@@ -494,12 +575,15 @@ class GameScene: SKScene {
         currentLevel = 1
         gameState = .ready
         score = 0
+        runScore = 0
+        isBonusRound = false
         spicyWingHits = 0
         
         gameDuration = 30.0
         timeRemaining = gameDuration
         
         hudNode.updateScore(0)
+        hudNode.updateRunScore(0)
         hudNode.updateTime(Int(ceil(timeRemaining)))
         hudNode.updateLevel(currentLevel)
         hudNode.updateLives(livesRemaining)
@@ -569,7 +653,7 @@ class GameScene: SKScene {
     }
     
     private func initPizzaVelocity() {
-        let speed: CGFloat = 120
+        let speed: CGFloat = isBonusRound ? bonusRoundPizzaSpeed : normalPizzaSpeed
         let angle = CGFloat.random(in: 0...(2 * .pi))
         pizzaVelocity = CGVector(dx: cos(angle) * speed, dy: sin(angle) * speed)
     }
@@ -643,8 +727,16 @@ class GameScene: SKScene {
     }
 
     private func handlePizzaEat() {
-        // Increment score
-        score += 1
+        if isBonusRound {
+            // Bonus round: award extra run-score points; do not advance level progress
+            runScore += bonusRoundPizzaPoints
+            hudNode.updateRunScore(runScore)
+        } else {
+            // Normal play: advance per-level progress and total run score
+            score += 1
+            runScore += 1
+            hudNode.updateRunScore(runScore)
+        }
         
         // Play bite sound with cooldown
         playChompSoundIfReady()
@@ -695,6 +787,10 @@ class GameScene: SKScene {
         // Increment hit counter
         spicyWingHits += 1
         hudNode.updateLives(livesRemaining)
+        
+        // Penalise total run score for sloppy play
+        runScore = max(0, runScore - spicyWingRunScorePenalty)
+        hudNode.updateRunScore(runScore)
         
         // Play mommy sound with cooldown
         playMommySoundIfReady()
