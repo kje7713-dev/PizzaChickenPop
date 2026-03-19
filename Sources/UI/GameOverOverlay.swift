@@ -10,6 +10,7 @@ class GameOverOverlay: SKNode {
     private let gcStatusLabel: SKLabelNode
     private let leaderboardButton: SKLabelNode
     private let removeAdsButton: SKLabelNode
+    private let restorePurchasesButton: SKLabelNode
     private let restartLabel: SKLabelNode
 
     /// Name used for hit-testing the leaderboard button in touchesBegan
@@ -17,6 +18,9 @@ class GameOverOverlay: SKNode {
 
     /// Name used for hit-testing the remove-ads button in touchesBegan
     static let removeAdsButtonName = "removeAdsButton"
+
+    /// Name used for hit-testing the restore purchases button in touchesBegan
+    static let restorePurchasesButtonName = "restorePurchasesButton"
 
     init(size: CGSize, finalScore: Int, bestScore: Int,
          customMessage: String? = nil,
@@ -79,13 +83,22 @@ class GameOverOverlay: SKNode {
         removeAdsButton.zPosition = 201
         removeAdsButton.name = GameOverOverlay.removeAdsButtonName
 
-        // Restart prompt (shifted down to make room)
+        // RESTORE PURCHASES button
+        restorePurchasesButton = SKLabelNode(fontNamed: "Helvetica")
+        restorePurchasesButton.text = "Restore Purchases"
+        restorePurchasesButton.fontSize = 18
+        restorePurchasesButton.fontColor = SKColor.cyan
+        restorePurchasesButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 190)
+        restorePurchasesButton.zPosition = 201
+        restorePurchasesButton.name = GameOverOverlay.restorePurchasesButtonName
+
+        // Restart prompt
         restartLabel = SKLabelNode(fontNamed: "Helvetica")
         let promptText = customMessage != nil ? "Tap to Continue" : "Tap to Restart"
         restartLabel.text = promptText
         restartLabel.fontSize = 24
         restartLabel.fontColor = .lightGray
-        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 205)
+        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 235)
         restartLabel.zPosition = 201
 
         super.init()
@@ -96,7 +109,10 @@ class GameOverOverlay: SKNode {
         addChild(bestLabel)
         addChild(gcStatusLabel)
         if showLeaderboardButton { addChild(leaderboardButton) }
-        if !IAPManager.shared.adsRemoved { addChild(removeAdsButton) }
+        if !IAPManager.shared.adsRemoved {
+            addChild(removeAdsButton)
+            addChild(restorePurchasesButton)
+        }
         addChild(restartLabel)
 
         // Animate in

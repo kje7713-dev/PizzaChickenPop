@@ -15,6 +15,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let viewController = GameViewController()
         window?.rootViewController = viewController
         window?.makeKeyAndVisible()
+
+        // Refresh purchase entitlements in the background so Remove Ads
+        // ownership is recognised immediately on cold launch.
+        Task {
+            await IAPManager.shared.refreshPurchasedState()
+        }
         
         return true
     }
