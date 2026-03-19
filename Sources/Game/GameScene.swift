@@ -121,13 +121,42 @@ class GameScene: SKScene {
         if let vc = view.window?.rootViewController {
             GameCenterManager.shared.authenticate(from: vc)
         }
+
+        // Observe IAP state changes so the overlay stays current
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleIAPStateChange),
+            name: .iapStateDidChange,
+            object: nil
+        )
     }
     
     override func willMove(from view: SKView) {
         super.willMove(from: view)
         SoundManager.shared.stopBackgroundMusic()
+        NotificationCenter.default.removeObserver(self, name: .iapStateDidChange, object: nil)
     }
-    
+
+    /// Called on the main thread when IAPManager.adsRemoved changes.
+    @objc private func handleIAPStateChange() {
+        guard gameState == .gameOver || gameState == .levelComplete,
+              let overlay = gameOverOverlay else { return }
+        // Rebuild the overlay to reflect the new purchase state.
+        let isGameOver = gameState == .gameOver
+        let customMsg: String? = isGameOver ? nil : (currentLevel == 3 ? "Game Complete!" : "Level \(currentLevel) Complete!")
+        let newOverlay = GameOverOverlay(
+            size: size,
+            finalScore: score,
+            bestScore: scoreManager.bestScore,
+            customMessage: customMsg,
+            gcStatus: isGameOver ? GameCenterManager.shared.lastSubmissionMessage : nil,
+            showLeaderboardButton: isGameOver
+        )
+        overlay.removeFromParent()
+        gameOverOverlay = newOverlay
+        addChild(newOverlay)
+    }
+
     // MARK: - Setup Methods
     private func setupChicken() {
         // Create sprite-based chicken
@@ -303,6 +332,10 @@ class GameScene: SKScene {
                 }
             } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.removeAdsButtonName }) {
                 IAPManager.shared.purchaseRemoveAds()
+            } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.restorePurchasesButtonName }) {
+                Task {
+                    await IAPManager.shared.restorePurchases()
+                }
             } else {
                 restartGame()
             }

@@ -8,6 +8,11 @@ final class AdManager {
     private var rewardedAd: GADRewardedAd?
     private var didInitialize = false
 
+    /// Rewarded ad unit ID sourced from Info.plist (build-setting key GADRewardedAdUnitID).
+    private var adUnitID: String {
+        Bundle.main.object(forInfoDictionaryKey: "GADRewardedAdUnitID") as? String ?? ""
+    }
+
     func initializeIfNeeded() {
         guard !didInitialize else { return }
         didInitialize = true
@@ -15,13 +20,17 @@ final class AdManager {
     }
 
     func loadAd() {
+        guard !IAPManager.shared.adsRemoved else { return }
         initializeIfNeeded()
 
+        let unitID = adUnitID
+        guard !unitID.isEmpty else {
+            print("AdManager: GADRewardedAdUnitID is not configured in Info.plist")
+            return
+        }
+
         let request = GADRequest()
-        GADRewardedAd.load(
-            withAdUnitID: "ca-app-pub-3940256099942544/1712485313", // test ID
-            request: request
-        ) { ad, error in
+        GADRewardedAd.load(withAdUnitID: unitID, request: request) { ad, error in
             if let error = error {
                 print("Ad load failed:", error)
                 return
@@ -31,6 +40,7 @@ final class AdManager {
     }
 
     func showAd(from vc: UIViewController, onReward: @escaping () -> Void) {
+        guard !IAPManager.shared.adsRemoved else { return }
         guard let ad = rewardedAd else {
             print("Ad not ready")
             return
