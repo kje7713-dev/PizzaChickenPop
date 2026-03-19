@@ -8,6 +8,16 @@ final class AdManager {
     private var rewardedAd: GADRewardedAd?
     private var didInitialize = false
 
+    /// Returns true when the value looks like an unfilled placeholder (contains "REPLACE_ME" or is empty).
+    private static func isPlaceholder(_ value: String) -> Bool {
+        value.isEmpty || value.contains("REPLACE_ME")
+    }
+
+    /// AdMob app ID sourced from Info.plist (build-setting key GAD_APPLICATION_IDENTIFIER).
+    private var appID: String {
+        Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String ?? ""
+    }
+
     /// Rewarded ad unit ID sourced from Info.plist (build-setting key GADRewardedAdUnitID).
     private var adUnitID: String {
         Bundle.main.object(forInfoDictionaryKey: "GADRewardedAdUnitID") as? String ?? ""
@@ -16,6 +26,10 @@ final class AdManager {
     func initializeIfNeeded() {
         guard !didInitialize else { return }
         didInitialize = true
+        guard !AdManager.isPlaceholder(appID) else {
+            print("AdManager: GADApplicationIdentifier is not configured – skipping SDK init")
+            return
+        }
         GADMobileAds.sharedInstance().start(completionHandler: nil)
     }
 
@@ -24,8 +38,8 @@ final class AdManager {
         initializeIfNeeded()
 
         let unitID = adUnitID
-        guard !unitID.isEmpty else {
-            print("AdManager: GADRewardedAdUnitID is not configured in Info.plist")
+        guard !AdManager.isPlaceholder(unitID) else {
+            print("AdManager: GADRewardedAdUnitID is not configured – skipping ad load")
             return
         }
 
