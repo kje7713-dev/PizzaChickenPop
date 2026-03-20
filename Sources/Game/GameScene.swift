@@ -138,6 +138,9 @@ class GameScene: SKScene {
             name: .iapStateDidChange,
             object: nil
         )
+
+        // Start preloading rewarded ad early so it is ready by game over
+        AdManager.shared.loadAd()
     }
     
     override func willMove(from view: SKView) {
