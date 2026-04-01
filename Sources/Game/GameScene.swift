@@ -202,8 +202,8 @@ class GameScene: SKScene {
         
         addChild(pizzaNode)
         
-        // Start continuous movement for level 3
-        if currentLevel == 3 {
+        // Start continuous movement for level 2 and above
+        if currentLevel >= 2 {
             initPizzaVelocity()
         }
     }
@@ -392,8 +392,8 @@ class GameScene: SKScene {
         hudNode.updateLevel(currentLevel)
         hudNode.updateLives(livesRemaining)
         
-        // Start continuous pizza movement for level 3
-        if currentLevel == 3 {
+        // Start continuous pizza movement for level 2 and above
+        if currentLevel >= 2 {
             initPizzaVelocity()
         }
 
@@ -649,8 +649,8 @@ class GameScene: SKScene {
         // Check collision with spicy wing
         checkSpicyWingCollision()
         
-        // Continuously move pizza in level 3
-        if currentLevel == 3 {
+        // Continuously move pizza in level 2 and above
+        if currentLevel >= 2 {
             updatePizzaMovement(deltaTime: deltaTime)
         }
     }
