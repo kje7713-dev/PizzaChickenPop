@@ -96,10 +96,6 @@ final class AdManager: NSObject {
 // MARK: - GADFullScreenContentDelegate
 
 extension AdManager: GADFullScreenContentDelegate {
-    func adDidPresentFullScreenContent(_ ad: GADFullScreenPresentingAd) {
-        print("AdManager: ad presented full screen content")
-    }
-
     func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
         print("AdManager: ad failed to present – \(error.localizedDescription)")
         rewardedAd = nil
