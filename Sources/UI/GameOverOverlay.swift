@@ -76,7 +76,7 @@ class GameOverOverlay: SKNode {
 
         // REMOVE ADS button
         removeAdsButton = SKLabelNode(fontNamed: "Helvetica-Bold")
-        removeAdsButton.text = "REMOVE ADS - $1.99"
+        removeAdsButton.text = "REMOVE ADS - $0.99"
         removeAdsButton.fontSize = 20
         removeAdsButton.fontColor = SKColor.green
         removeAdsButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 155)
