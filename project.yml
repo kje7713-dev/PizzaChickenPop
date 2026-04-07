@@ -48,6 +48,7 @@ targets:
         INFOPLIST_KEY_CFBundleIconName: AppIcon
         CODE_SIGN_IDENTITY: "Apple Distribution"
         CODE_SIGN_STYLE: Manual
+        CODE_SIGN_ENTITLEMENTS: Resources/PizzaChicken.entitlements
         PROVISIONING_PROFILE_SPECIFIER: match AppStore com.Savagebydesign.PizzaChicken
         DEVELOPMENT_TEAM: ${APPLE_TEAM_ID}
     postBuildScripts:
