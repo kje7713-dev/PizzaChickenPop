@@ -139,6 +139,14 @@ class GameScene: SKScene {
             object: nil
         )
 
+        // Observe IAP purchase status changes to update overlay feedback labels
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleIAPPurchaseStatusChange),
+            name: .iapPurchaseStatusDidChange,
+            object: nil
+        )
+
         // Start preloading rewarded ad early so it is ready by game over
         AdManager.shared.loadAd()
     }
@@ -147,6 +155,7 @@ class GameScene: SKScene {
         super.willMove(from: view)
         SoundManager.shared.stopBackgroundMusic()
         NotificationCenter.default.removeObserver(self, name: .iapStateDidChange, object: nil)
+        NotificationCenter.default.removeObserver(self, name: .iapPurchaseStatusDidChange, object: nil)
     }
 
     /// Called on the main thread when IAPManager.adsRemoved changes.
@@ -167,6 +176,11 @@ class GameScene: SKScene {
         overlay.removeFromParent()
         gameOverOverlay = newOverlay
         addChild(newOverlay)
+    }
+
+    /// Called on the main thread when the IAP purchase/restore status changes.
+    @objc private func handleIAPPurchaseStatusChange() {
+        gameOverOverlay?.updatePurchaseStatus(IAPManager.shared.purchaseStatus)
     }
 
     // MARK: - Setup Methods
@@ -343,8 +357,12 @@ class GameScene: SKScene {
                     GameCenterManager.shared.showLeaderboard(from: vc)
                 }
             } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.removeAdsButtonName }) {
+                // Prevent duplicate taps while a purchase is already in progress
+                if case .loading = IAPManager.shared.purchaseStatus { return }
                 IAPManager.shared.purchaseRemoveAds()
             } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.restorePurchasesButtonName }) {
+                // Prevent duplicate taps while a purchase is already in progress
+                if case .loading = IAPManager.shared.purchaseStatus { return }
                 Task {
                     await IAPManager.shared.restorePurchases()
                 }
