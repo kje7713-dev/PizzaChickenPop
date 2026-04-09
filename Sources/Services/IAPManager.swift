@@ -1,8 +1,22 @@
 import StoreKit
 
+// MARK: - Purchase Status
+
+/// Represents the current state of an in-app purchase or restore operation.
+enum PurchaseStatus {
+    case idle
+    case loading(String)
+    case success(String)
+    case failure(String)
+}
+
+// MARK: - Notifications
+
 extension Notification.Name {
     /// Posted on the main thread whenever `IAPManager.shared.adsRemoved` changes.
     static let iapStateDidChange = Notification.Name("iapStateDidChange")
+    /// Posted on the main thread whenever `IAPManager.shared.purchaseStatus` changes.
+    static let iapPurchaseStatusDidChange = Notification.Name("iapPurchaseStatusDidChange")
 }
 
 /// Manages the "Remove Ads" in-app purchase
@@ -20,6 +34,15 @@ final class IAPManager: NSObject {
             UserDefaults.standard.set(adsRemoved, forKey: userDefaultsKey)
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: .iapStateDidChange, object: nil)
+            }
+        }
+    }
+
+    /// Current purchase/restore operation status. Always updated on the main thread.
+    private(set) var purchaseStatus: PurchaseStatus = .idle {
+        didSet {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .iapPurchaseStatusDidChange, object: nil)
             }
         }
     }
@@ -51,9 +74,15 @@ final class IAPManager: NSObject {
 
     func purchaseRemoveAds() {
         Task {
+            await MainActor.run { purchaseStatus = .loading("Connecting to App Store…") }
             do {
                 let products = try await Product.products(for: [productID])
-                guard let product = products.first else { return }
+                guard let product = products.first else {
+                    await MainActor.run {
+                        purchaseStatus = .failure("Purchase unavailable. Please try again.")
+                    }
+                    return
+                }
 
                 let result = try await product.purchase()
 
@@ -62,16 +91,25 @@ final class IAPManager: NSObject {
                     if case .verified(let transaction) = verificationResult {
                         await transaction.finish()
                     }
-                case .userCancelled, .pending:
-                    break
+                    await refreshPurchasedState()
+                    await MainActor.run {
+                        purchaseStatus = adsRemoved ? .success("Ads removed. Thank you!") : .failure("Purchase could not be verified.")
+                    }
+                case .userCancelled:
+                    await MainActor.run { purchaseStatus = .idle }
+                    return
+                case .pending:
+                    await MainActor.run { purchaseStatus = .failure("Purchase is pending approval.") }
+                    return
                 @unknown default:
-                    break
+                    await MainActor.run { purchaseStatus = .idle }
+                    return
                 }
             } catch {
-                print("Purchase failed:", error)
+                await MainActor.run {
+                    purchaseStatus = .failure("Purchase failed. Please try again.")
+                }
             }
-            // Always re-derive state from entitlements after purchase attempt.
-            await refreshPurchasedState()
         }
     }
 
@@ -79,11 +117,18 @@ final class IAPManager: NSObject {
 
     /// Syncs with the App Store and re-checks entitlements.
     func restorePurchases() async {
+        await MainActor.run { purchaseStatus = .loading("Restoring purchases…") }
         do {
             try await AppStore.sync()
         } catch {
-            print("AppStore.sync failed:", error)
+            await MainActor.run {
+                purchaseStatus = .failure("Restore failed. Please try again.")
+            }
+            return
         }
         await refreshPurchasedState()
+        await MainActor.run {
+            purchaseStatus = adsRemoved ? .success("Purchases restored.") : .failure("No purchases found to restore.")
+        }
     }
 }

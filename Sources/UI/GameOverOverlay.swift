@@ -11,6 +11,8 @@ class GameOverOverlay: SKNode {
     private let leaderboardButton: SKLabelNode
     private let removeAdsButton: SKLabelNode
     private let restorePurchasesButton: SKLabelNode
+    /// Small label shown below the IAP buttons to communicate purchase/restore status.
+    private let purchaseStatusLabel: SKLabelNode
     private let restartLabel: SKLabelNode
 
     /// Name used for hit-testing the leaderboard button in touchesBegan
@@ -21,6 +23,9 @@ class GameOverOverlay: SKNode {
 
     /// Name used for hit-testing the restore purchases button in touchesBegan
     static let restorePurchasesButtonName = "restorePurchasesButton"
+
+    /// The default title text for the remove-ads button (idle state).
+    private static let removeAdsButtonTitle = "REMOVE ADS - $0.99"
 
     init(size: CGSize, finalScore: Int, bestScore: Int,
          customMessage: String? = nil,
@@ -76,7 +81,7 @@ class GameOverOverlay: SKNode {
 
         // REMOVE ADS button
         removeAdsButton = SKLabelNode(fontNamed: "Helvetica-Bold")
-        removeAdsButton.text = "REMOVE ADS - $0.99"
+        removeAdsButton.text = GameOverOverlay.removeAdsButtonTitle
         removeAdsButton.fontSize = 20
         removeAdsButton.fontColor = SKColor.green
         removeAdsButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 155)
@@ -92,13 +97,21 @@ class GameOverOverlay: SKNode {
         restorePurchasesButton.zPosition = 201
         restorePurchasesButton.name = GameOverOverlay.restorePurchasesButtonName
 
+        // Purchase status label (shown below IAP buttons)
+        purchaseStatusLabel = SKLabelNode(fontNamed: "Helvetica")
+        purchaseStatusLabel.text = ""
+        purchaseStatusLabel.fontSize = 16
+        purchaseStatusLabel.fontColor = .white
+        purchaseStatusLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 220)
+        purchaseStatusLabel.zPosition = 201
+
         // Restart prompt
         restartLabel = SKLabelNode(fontNamed: "Helvetica")
         let promptText = customMessage != nil ? "Tap to Continue" : "Tap to Restart"
         restartLabel.text = promptText
         restartLabel.fontSize = 24
         restartLabel.fontColor = .lightGray
-        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 235)
+        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 260)
         restartLabel.zPosition = 201
 
         super.init()
@@ -112,6 +125,7 @@ class GameOverOverlay: SKNode {
         if !IAPManager.shared.adsRemoved {
             addChild(removeAdsButton)
             addChild(restorePurchasesButton)
+            addChild(purchaseStatusLabel)
         }
         addChild(restartLabel)
 
@@ -128,5 +142,41 @@ class GameOverOverlay: SKNode {
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Purchase Status
+
+    /// Updates the status label and button appearance to reflect the current purchase state.
+    /// Call from the main thread.
+    func updatePurchaseStatus(_ status: PurchaseStatus) {
+        switch status {
+        case .idle:
+            purchaseStatusLabel.text = ""
+            removeAdsButton.text = GameOverOverlay.removeAdsButtonTitle
+            removeAdsButton.fontColor = SKColor.green
+            removeAdsButton.alpha = 1.0
+            restorePurchasesButton.alpha = 1.0
+        case .loading(let message):
+            purchaseStatusLabel.text = message
+            purchaseStatusLabel.fontColor = .white
+            removeAdsButton.text = "PROCESSING…"
+            removeAdsButton.fontColor = SKColor.gray
+            removeAdsButton.alpha = 0.6
+            restorePurchasesButton.alpha = 0.4
+        case .success(let message):
+            purchaseStatusLabel.text = message
+            purchaseStatusLabel.fontColor = SKColor.green
+            removeAdsButton.text = GameOverOverlay.removeAdsButtonTitle
+            removeAdsButton.fontColor = SKColor.green
+            removeAdsButton.alpha = 1.0
+            restorePurchasesButton.alpha = 1.0
+        case .failure(let message):
+            purchaseStatusLabel.text = message
+            purchaseStatusLabel.fontColor = SKColor.red
+            removeAdsButton.text = GameOverOverlay.removeAdsButtonTitle
+            removeAdsButton.fontColor = SKColor.green
+            removeAdsButton.alpha = 1.0
+            restorePurchasesButton.alpha = 1.0
+        }
     }
 }
