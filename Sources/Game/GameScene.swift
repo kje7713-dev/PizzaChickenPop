@@ -147,7 +147,7 @@ class GameScene: SKScene {
             object: nil
         )
 
-        // Start preloading rewarded ad early so it is ready by game over
+        // Start preloading interstitial ad early so it is ready by game over
         AdManager.shared.loadAd()
     }
     
@@ -415,7 +415,7 @@ class GameScene: SKScene {
             initPizzaVelocity()
         }
 
-        // Preload rewarded ad now that the game is starting
+        // Preload interstitial ad now that the game is starting
         AdManager.shared.loadAd()
     }
     
@@ -566,13 +566,11 @@ class GameScene: SKScene {
         // Submit total run score to Game Center leaderboard
         GameCenterManager.shared.submitScore(runScore)
 
-        // Show rewarded ad if ads have not been removed
+        // Show interstitial ad if ads have not been removed
         if !IAPManager.shared.adsRemoved,
            let sceneView = self.view,
            let vc = sceneView.window?.rootViewController {
-            AdManager.shared.showAd(from: vc) {
-                print("reward granted")
-            }
+            AdManager.shared.showAd(from: vc)
         }
 
         // Show game over overlay with total run score, Game Center status, and leaderboard button
