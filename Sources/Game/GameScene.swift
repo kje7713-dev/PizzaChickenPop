@@ -9,6 +9,8 @@ class GameScene: SKScene {
     private var spicyWingNodes: [SKSpriteNode] = []
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
+    /// Non-bypassable parental gate shown before any commerce action.
+    private var parentalGateOverlay: ParentalGateOverlay?
 
     // MARK: - Sound Actions
     private let chompSound = SoundManager.shared.soundAction(name: "chomp")
@@ -332,6 +334,12 @@ class GameScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
+
+        // If the parental gate is visible, route all touches to it and return.
+        if let gate = parentalGateOverlay {
+            gate.handleTouch(at: location, scene: self)
+            return
+        }
         
         switch gameState {
         case .ready:
@@ -359,17 +367,39 @@ class GameScene: SKScene {
             } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.removeAdsButtonName }) {
                 // Prevent duplicate taps while a purchase is already in progress
                 if case .loading = IAPManager.shared.purchaseStatus { return }
-                IAPManager.shared.purchaseRemoveAds()
+                showParentalGate {
+                    IAPManager.shared.purchaseRemoveAds()
+                }
             } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.restorePurchasesButtonName }) {
                 // Prevent duplicate taps while a purchase is already in progress
                 if case .loading = IAPManager.shared.purchaseStatus { return }
-                Task {
-                    await IAPManager.shared.restorePurchases()
+                showParentalGate {
+                    Task {
+                        await IAPManager.shared.restorePurchases()
+                    }
                 }
             } else {
                 restartGame()
             }
         }
+    }
+
+    // MARK: - Parental Gate
+
+    /// Presents a parental gate overlay.  On success the `onSuccess` closure is called.
+    /// If a gate is already visible (e.g. from a rapid double-tap) the call is ignored.
+    private func showParentalGate(onSuccess: @escaping () -> Void) {
+        guard parentalGateOverlay == nil else { return }
+        let gate = ParentalGateOverlay(sceneSize: size)
+        gate.onSuccess = { [weak self] in
+            self?.parentalGateOverlay = nil
+            onSuccess()
+        }
+        gate.onDismiss = { [weak self] in
+            self?.parentalGateOverlay = nil
+        }
+        parentalGateOverlay = gate
+        addChild(gate)
     }
     
     // MARK: - Click Rate Tracking
