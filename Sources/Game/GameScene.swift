@@ -9,8 +9,6 @@ class GameScene: SKScene {
     private var spicyWingNodes: [SKSpriteNode] = []
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
-    /// Non-bypassable parental gate shown before any commerce action.
-    private var parentalGateOverlay: ParentalGateOverlay?
 
     // MARK: - Sound Actions
     private let chompSound = SoundManager.shared.soundAction(name: "chomp")
@@ -133,22 +131,6 @@ class GameScene: SKScene {
             GameCenterManager.shared.authenticate(from: vc)
         }
 
-        // Observe IAP state changes so the overlay stays current
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleIAPStateChange),
-            name: .iapStateDidChange,
-            object: nil
-        )
-
-        // Observe IAP purchase status changes to update overlay feedback labels
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleIAPPurchaseStatusChange),
-            name: .iapPurchaseStatusDidChange,
-            object: nil
-        )
-
         // Start preloading interstitial ad early so it is ready by game over
         AdManager.shared.loadAd()
     }
@@ -156,33 +138,6 @@ class GameScene: SKScene {
     override func willMove(from view: SKView) {
         super.willMove(from: view)
         SoundManager.shared.stopBackgroundMusic()
-        NotificationCenter.default.removeObserver(self, name: .iapStateDidChange, object: nil)
-        NotificationCenter.default.removeObserver(self, name: .iapPurchaseStatusDidChange, object: nil)
-    }
-
-    /// Called on the main thread when IAPManager.adsRemoved changes.
-    @objc private func handleIAPStateChange() {
-        guard gameState == .gameOver || gameState == .levelComplete,
-              let overlay = gameOverOverlay else { return }
-        // Rebuild the overlay to reflect the new purchase state.
-        let isGameOver = gameState == .gameOver
-        let customMsg: String? = isGameOver ? nil : (currentLevel == 3 ? "Game Complete!" : "Level \(currentLevel) Complete!")
-        let newOverlay = GameOverOverlay(
-            size: size,
-            finalScore: isGameOver ? runScore : score,
-            bestScore: scoreManager.bestScore,
-            customMessage: customMsg,
-            gcStatus: isGameOver ? GameCenterManager.shared.lastSubmissionMessage : nil,
-            showLeaderboardButton: isGameOver
-        )
-        overlay.removeFromParent()
-        gameOverOverlay = newOverlay
-        addChild(newOverlay)
-    }
-
-    /// Called on the main thread when the IAP purchase/restore status changes.
-    @objc private func handleIAPPurchaseStatusChange() {
-        gameOverOverlay?.updatePurchaseStatus(IAPManager.shared.purchaseStatus)
     }
 
     // MARK: - Setup Methods
@@ -334,12 +289,6 @@ class GameScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
-
-        // If the parental gate is visible, route all touches to it and return.
-        if let gate = parentalGateOverlay {
-            gate.handleTouch(at: location, scene: self)
-            return
-        }
         
         switch gameState {
         case .ready:
@@ -364,44 +313,12 @@ class GameScene: SKScene {
                 if let vc = view?.window?.rootViewController {
                     GameCenterManager.shared.showLeaderboard(from: vc)
                 }
-            } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.removeAdsButtonName }) {
-                // Prevent duplicate taps while a purchase is already in progress
-                if case .loading = IAPManager.shared.purchaseStatus { return }
-                showParentalGate {
-                    IAPManager.shared.purchaseRemoveAds()
-                }
-            } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.restorePurchasesButtonName }) {
-                // Prevent duplicate taps while a purchase is already in progress
-                if case .loading = IAPManager.shared.purchaseStatus { return }
-                showParentalGate {
-                    Task {
-                        await IAPManager.shared.restorePurchases()
-                    }
-                }
             } else {
                 restartGame()
             }
         }
     }
 
-    // MARK: - Parental Gate
-
-    /// Presents a parental gate overlay.  On success the `onSuccess` closure is called.
-    /// If a gate is already visible (e.g. from a rapid double-tap) the call is ignored.
-    private func showParentalGate(onSuccess: @escaping () -> Void) {
-        guard parentalGateOverlay == nil else { return }
-        let gate = ParentalGateOverlay(sceneSize: size)
-        gate.onSuccess = { [weak self] in
-            self?.parentalGateOverlay = nil
-            onSuccess()
-        }
-        gate.onDismiss = { [weak self] in
-            self?.parentalGateOverlay = nil
-        }
-        parentalGateOverlay = gate
-        addChild(gate)
-    }
-    
     // MARK: - Click Rate Tracking
     private func recordClick() {
         let currentTime = Date().timeIntervalSinceReferenceDate
@@ -596,9 +513,8 @@ class GameScene: SKScene {
         // Submit total run score to Game Center leaderboard
         GameCenterManager.shared.submitScore(runScore)
 
-        // Show interstitial ad if ads have not been removed
-        if !IAPManager.shared.adsRemoved,
-           let sceneView = self.view,
+        // Show interstitial ad at game over
+        if let sceneView = self.view,
            let vc = sceneView.window?.rootViewController {
             AdManager.shared.showAd(from: vc)
         }

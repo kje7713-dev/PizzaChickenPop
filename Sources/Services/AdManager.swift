@@ -41,7 +41,6 @@ final class AdManager: NSObject {
     }
 
     func loadAd() {
-        guard !IAPManager.shared.adsRemoved else { return }
         guard !isLoading else { return }
         initializeIfNeeded()
 
@@ -74,7 +73,6 @@ final class AdManager: NSObject {
     }
 
     func showAd(from vc: UIViewController) {
-        guard !IAPManager.shared.adsRemoved else { return }
         guard let ad = interstitialAd else {
             print("AdManager: show requested but ad not ready – scheduling deferred show")
             pendingViewController = vc
