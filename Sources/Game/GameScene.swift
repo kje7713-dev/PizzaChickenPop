@@ -46,6 +46,7 @@ class GameScene: SKScene {
     
     // MARK: - Managers
     private let scoreManager = ScoreManager()
+    private var gcAuthObserver: NSObjectProtocol?
     
     // MARK: - Movement
     private var targetPosition: CGPoint?
@@ -131,6 +132,15 @@ class GameScene: SKScene {
             GameCenterManager.shared.authenticate(from: vc)
         }
 
+        // Observe Game Center auth changes so the game-over overlay can refresh
+        gcAuthObserver = NotificationCenter.default.addObserver(
+            forName: .gameCenterAuthDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshGameOverOverlayIfNeeded()
+        }
+
         // Start preloading interstitial ad early so it is ready by game over
         AdManager.shared.loadAd()
     }
@@ -138,6 +148,10 @@ class GameScene: SKScene {
     override func willMove(from view: SKView) {
         super.willMove(from: view)
         SoundManager.shared.stopBackgroundMusic()
+        if let observer = gcAuthObserver {
+            NotificationCenter.default.removeObserver(observer)
+            gcAuthObserver = nil
+        }
     }
 
     // MARK: - Setup Methods
@@ -312,6 +326,10 @@ class GameScene: SKScene {
             if tappedNodes.contains(where: { $0.name == GameOverOverlay.leaderboardButtonName }) {
                 if let vc = view?.window?.rootViewController {
                     GameCenterManager.shared.showLeaderboard(from: vc)
+                }
+            } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.connectGameCenterButtonName }) {
+                if let vc = view?.window?.rootViewController {
+                    GameCenterManager.shared.forceReconnect(from: vc)
                 }
             } else {
                 restartGame()
@@ -520,17 +538,34 @@ class GameScene: SKScene {
         }
 
         // Show game over overlay with total run score, Game Center status, and leaderboard button
-        let overlay = GameOverOverlay(
+        let overlay = makeGameOverOverlay()
+        gameOverOverlay = overlay
+        addChild(overlay)
+    }
+
+    /// Builds a fresh game-over overlay using the current runScore and Game Center state.
+    private func makeGameOverOverlay() -> GameOverOverlay {
+        return GameOverOverlay(
             size: size,
             finalScore: runScore,
             bestScore: scoreManager.bestScore,
             gcStatus: GameCenterManager.shared.lastSubmissionMessage,
-            showLeaderboardButton: true
+            showLeaderboardButton: true,
+            isGCAuthenticated: GameCenterManager.shared.isAuthenticated
         )
+    }
+    
+    /// Called when Game Center auth state changes (via notification).
+    /// Rebuilds the game-over overlay so the status label and connect button update immediately.
+    private func refreshGameOverOverlayIfNeeded() {
+        guard gameState == .gameOver else { return }
+        gameOverOverlay?.removeFromParent()
+        gameOverOverlay = nil
+        let overlay = makeGameOverOverlay()
         gameOverOverlay = overlay
         addChild(overlay)
     }
-    
+
     private func restartGame() {
         // Remove overlay
         gameOverOverlay?.removeFromParent()
