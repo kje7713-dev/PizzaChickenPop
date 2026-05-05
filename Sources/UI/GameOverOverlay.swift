@@ -9,15 +9,21 @@ class GameOverOverlay: SKNode {
     private let bestLabel: SKLabelNode
     private let gcStatusLabel: SKLabelNode
     private let leaderboardButton: SKLabelNode
+    private let connectGCButton: SKLabelNode
+    private let gcDebugLabel: SKLabelNode
     private let restartLabel: SKLabelNode
 
     /// Name used for hit-testing the leaderboard button in touchesBegan
     static let leaderboardButtonName = "leaderboardButton"
 
+    /// Name used for hit-testing the connect Game Center button in touchesBegan
+    static let connectGameCenterButtonName = "connectGameCenterButton"
+
     init(size: CGSize, finalScore: Int, bestScore: Int,
          customMessage: String? = nil,
          gcStatus: String? = nil,
-         showLeaderboardButton: Bool = false) {
+         showLeaderboardButton: Bool = false,
+         isGCAuthenticated: Bool = false) {
         // Semi-transparent background
         backgroundNode = SKShapeNode(rectOf: size)
         backgroundNode.fillColor = SKColor.black.withAlphaComponent(0.7)
@@ -57,7 +63,7 @@ class GameOverOverlay: SKNode {
         gcStatusLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 70)
         gcStatusLabel.zPosition = 201
 
-        // LEADERBOARD button (only shown on true game-over screen)
+        // LEADERBOARD button (always shown on true game-over screen)
         leaderboardButton = SKLabelNode(fontNamed: "Helvetica-Bold")
         leaderboardButton.text = "LEADERBOARD"
         leaderboardButton.fontSize = 22
@@ -66,13 +72,31 @@ class GameOverOverlay: SKNode {
         leaderboardButton.zPosition = 201
         leaderboardButton.name = GameOverOverlay.leaderboardButtonName
 
+        // CONNECT GAME CENTER button (shown only when not authenticated)
+        connectGCButton = SKLabelNode(fontNamed: "Helvetica-Bold")
+        connectGCButton.text = "CONNECT GAME CENTER"
+        connectGCButton.fontSize = 18
+        connectGCButton.fontColor = SKColor.cyan
+        connectGCButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 150)
+        connectGCButton.zPosition = 201
+        connectGCButton.name = GameOverOverlay.connectGameCenterButtonName
+
+        // Debug auth state line (subtle, small)
+        gcDebugLabel = SKLabelNode(fontNamed: "Helvetica")
+        gcDebugLabel.text = isGCAuthenticated ? "GC Auth: YES" : "GC Auth: NO"
+        gcDebugLabel.fontSize = 13
+        gcDebugLabel.fontColor = isGCAuthenticated ? SKColor.green.withAlphaComponent(0.7)
+                                                   : SKColor.red.withAlphaComponent(0.7)
+        gcDebugLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 185)
+        gcDebugLabel.zPosition = 201
+
         // Restart prompt
         restartLabel = SKLabelNode(fontNamed: "Helvetica")
         let promptText = customMessage != nil ? "Tap to Continue" : "Tap to Restart"
         restartLabel.text = promptText
         restartLabel.fontSize = 24
         restartLabel.fontColor = .lightGray
-        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 165)
+        restartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 220)
         restartLabel.zPosition = 201
 
         super.init()
@@ -83,6 +107,10 @@ class GameOverOverlay: SKNode {
         addChild(bestLabel)
         addChild(gcStatusLabel)
         if showLeaderboardButton { addChild(leaderboardButton) }
+        if showLeaderboardButton {
+            if !isGCAuthenticated { addChild(connectGCButton) }
+            addChild(gcDebugLabel)
+        }
         addChild(restartLabel)
 
         // Animate in

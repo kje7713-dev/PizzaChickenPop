@@ -2,6 +2,11 @@ import Foundation
 import GameKit
 import UIKit
 
+/// Posted on the main queue whenever Game Center auth state changes.
+extension Notification.Name {
+    static let gameCenterAuthDidChange = Notification.Name("GameCenterAuthDidChange")
+}
+
 /// Manages Game Center authentication and leaderboard submission
 final class GameCenterManager: NSObject {
     static let shared = GameCenterManager()
@@ -10,49 +15,89 @@ final class GameCenterManager: NSObject {
     private let leaderboardID = "ABC123"
     private(set) var isAuthenticated = false
     private(set) var lastSubmissionSucceeded = false
-    private(set) var lastSubmissionMessage = "Game Center not checked yet"
+    private(set) var lastSubmissionMessage = "Game Center auth not started"
+
+    /// Prevents re-registering the authenticate handler on every call unless a
+    /// manual reconnect is explicitly requested.
+    private var hasConfiguredAuthenticateHandler = false
+
+    // MARK: - Authentication
 
     func authenticate(from viewController: UIViewController?) {
+        print("[GameCenter] authenticate() called – hasConfiguredHandler=\(hasConfiguredAuthenticateHandler)")
+        guard !hasConfiguredAuthenticateHandler else {
+            print("[GameCenter] authenticate() skipped – handler already configured")
+            return
+        }
+        hasConfiguredAuthenticateHandler = true
+        lastSubmissionMessage = "Game Center sign-in required"
+
         let localPlayer = GKLocalPlayer.local
 
         localPlayer.authenticateHandler = { [weak self] gcVC, error in
             guard let self = self else { return }
 
             if let gcVC = gcVC {
-                print("Presenting Game Center login UI")
-
-                viewController?.present(gcVC, animated: true)
-
-                self.lastSubmissionMessage = "Signing into Game Center..."
+                print("[GameCenter] Sign-in UI returned – attempting to present")
+                self.lastSubmissionMessage = "Presenting Game Center sign-in"
+                if let vc = viewController {
+                    vc.present(gcVC, animated: true)
+                    print("[GameCenter] Sign-in UI presented")
+                } else {
+                    print("[GameCenter] Sign-in UI returned but viewController is nil – cannot present")
+                    self.lastSubmissionMessage = "Game Center sign-in incomplete"
+                }
                 return
             }
 
             if let error = error {
-                print("Game Center auth error:", error.localizedDescription)
+                print("[GameCenter] Auth error: \(error.localizedDescription)")
                 self.isAuthenticated = false
                 self.lastSubmissionMessage = "Game Center unavailable"
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .gameCenterAuthDidChange, object: nil)
+                }
                 return
             }
 
-            self.isAuthenticated = localPlayer.isAuthenticated
+            let authenticated = localPlayer.isAuthenticated
+            print("[GameCenter] localPlayer.isAuthenticated=\(authenticated)")
+            self.isAuthenticated = authenticated
 
-            if self.isAuthenticated {
+            if authenticated {
                 self.lastSubmissionMessage = "Game Center connected"
+                print("[GameCenter] Auth succeeded – player: \(localPlayer.displayName)")
             } else {
-                self.lastSubmissionMessage = "Game Center not connected"
+                self.lastSubmissionMessage = "Game Center sign-in incomplete"
+                print("[GameCenter] Auth callback completed but player is not authenticated")
             }
 
-            print("Game Center authenticated:", self.isAuthenticated)
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .gameCenterAuthDidChange, object: nil)
+            }
         }
     }
 
+    /// Resets the handler guard and re-runs authentication so the user can
+    /// manually trigger the Game Center sign-in UI from the game-over screen.
+    func forceReconnect(from viewController: UIViewController?) {
+        print("[GameCenter] forceReconnect() called – resetting handler flag")
+        hasConfiguredAuthenticateHandler = false
+        lastSubmissionMessage = "Game Center sign-in required"
+        authenticate(from: viewController)
+    }
+
+    // MARK: - Score Submission
+
     func submitScore(_ score: Int) {
+        print("[GameCenter] submitScore(\(score)) called – isAuthenticated=\(isAuthenticated)")
         guard isAuthenticated else {
             lastSubmissionSucceeded = false
             lastSubmissionMessage = "Score not submitted: Game Center not connected"
             print("[GameCenter] Skipping score submission – not authenticated")
             return
         }
+        print("[GameCenter] Submitting score \(score) to leaderboard '\(leaderboardID)'")
         if #available(iOS 14.0, *) {
             // context 0 = default, no per-submission metadata needed
             GKLeaderboard.submitScore(score, context: 0, player: GKLocalPlayer.local,
@@ -65,7 +110,7 @@ final class GameCenterManager: NSObject {
                     } else {
                         self?.lastSubmissionSucceeded = true
                         self?.lastSubmissionMessage = "Score submitted"
-                        print("[GameCenter] Score \(score) submitted to leaderboard")
+                        print("[GameCenter] Score \(score) submitted successfully")
                     }
                 }
             }
@@ -81,19 +126,23 @@ final class GameCenterManager: NSObject {
                     } else {
                         self?.lastSubmissionSucceeded = true
                         self?.lastSubmissionMessage = "Score submitted"
-                        print("[GameCenter] Score \(score) submitted to leaderboard")
+                        print("[GameCenter] Score \(score) submitted successfully (legacy)")
                     }
                 }
             }
         }
     }
 
+    // MARK: - Leaderboard Presentation
+
     func showLeaderboard(from viewController: UIViewController) {
+        print("[GameCenter] showLeaderboard() called – isAuthenticated=\(isAuthenticated)")
         guard isAuthenticated else {
             lastSubmissionMessage = "Cannot open leaderboard: Game Center not connected"
             print("[GameCenter] Cannot show leaderboard – not authenticated")
             return
         }
+        print("[GameCenter] Presenting leaderboard UI")
         let gcVC = GKGameCenterViewController(leaderboardID: leaderboardID,
                                               playerScope: .global,
                                               timeScope: .allTime)
