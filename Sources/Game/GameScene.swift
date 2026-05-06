@@ -328,35 +328,50 @@ class GameScene: SKScene {
             advanceToNextLevel()
             
         case .gameOver:
-            // Find the topmost named button container among tapped nodes.
-            // Using container names guarantees the full hit area is tested,
-            // not just the narrow label glyph bounds.
+            // Walk up the parent chain for each tapped node so taps on child
+            // label nodes inside a container are still matched correctly.
             let tappedNodes = nodes(at: location)
-            let tappedButton = tappedNodes.first(where: {
-                $0.name.map { GameScene.gameOverButtonNames.contains($0) } ?? false
-            })
+            let buttonName = firstNamedNode(in: tappedNodes,
+                                            matching: GameScene.gameOverButtonNames)
 
-            switch tappedButton?.name {
+            switch buttonName {
             case GameOverOverlay.leaderboardButtonName:
-                print("[GameScene] Game over tap matched LEADERBOARD")
+                print("[GameScene] game over tap -> leaderboard")
                 if let vc = view?.window?.rootViewController {
                     GameCenterManager.shared.showLeaderboard(from: vc)
                 }
             case GameOverOverlay.connectGameCenterButtonName:
-                print("[GameScene] Game over tap matched CONNECT GAME CENTER")
+                print("[GameScene] game over tap -> connect game center")
                 if let vc = view?.window?.rootViewController {
                     GameCenterManager.shared.forceReconnect(from: vc)
                 }
             case GameOverOverlay.restartButtonName:
-                print("[GameScene] Game over tap matched RESTART")
+                print("[GameScene] game over tap -> restart")
                 restartGame()
             default:
-                print("[GameScene] Game over tap matched no button")
+                print("[GameScene] game over tap -> no actionable button")
             }
         }
     }
 
     // MARK: - Click Rate Tracking
+
+    /// Walks up the parent chain for each node in `nodes` and returns the first
+    /// node name that exists in `names`. This ensures taps on child label nodes
+    /// inside a button container are still correctly routed to the container.
+    private func firstNamedNode(in nodes: [SKNode], matching names: Set<String>) -> String? {
+        for node in nodes {
+            var current: SKNode? = node
+            while let n = current {
+                if let name = n.name, names.contains(name) {
+                    return name
+                }
+                current = n.parent
+            }
+        }
+        return nil
+    }
+
     private func recordClick() {
         let currentTime = Date().timeIntervalSinceReferenceDate
         clickTimestamps.append(currentTime)
