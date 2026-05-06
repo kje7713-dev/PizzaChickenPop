@@ -10,6 +10,13 @@ class GameScene: SKScene {
     private var hudNode: HUDNode!
     private var gameOverOverlay: GameOverOverlay?
 
+    // MARK: - Game Over Button Names (cached set for tap-detection)
+    private static let gameOverButtonNames: Set<String> = [
+        GameOverOverlay.leaderboardButtonName,
+        GameOverOverlay.connectGameCenterButtonName,
+        GameOverOverlay.restartButtonName
+    ]
+
     // MARK: - Sound Actions
     private let chompSound = SoundManager.shared.soundAction(name: "chomp")
     private let mommySound = SoundManager.shared.soundAction(name: "mommy")
@@ -321,18 +328,30 @@ class GameScene: SKScene {
             advanceToNextLevel()
             
         case .gameOver:
-            // Check if the leaderboard button was tapped
+            // Find the topmost named button container among tapped nodes.
+            // Using container names guarantees the full hit area is tested,
+            // not just the narrow label glyph bounds.
             let tappedNodes = nodes(at: location)
-            if tappedNodes.contains(where: { $0.name == GameOverOverlay.leaderboardButtonName }) {
+            let tappedButton = tappedNodes.first(where: {
+                $0.name.map { GameScene.gameOverButtonNames.contains($0) } ?? false
+            })
+
+            switch tappedButton?.name {
+            case GameOverOverlay.leaderboardButtonName:
+                print("[GameScene] Game over tap matched LEADERBOARD")
                 if let vc = view?.window?.rootViewController {
                     GameCenterManager.shared.showLeaderboard(from: vc)
                 }
-            } else if tappedNodes.contains(where: { $0.name == GameOverOverlay.connectGameCenterButtonName }) {
+            case GameOverOverlay.connectGameCenterButtonName:
+                print("[GameScene] Game over tap matched CONNECT GAME CENTER")
                 if let vc = view?.window?.rootViewController {
                     GameCenterManager.shared.forceReconnect(from: vc)
                 }
-            } else {
+            case GameOverOverlay.restartButtonName:
+                print("[GameScene] Game over tap matched RESTART")
                 restartGame()
+            default:
+                print("[GameScene] Game over tap matched no button")
             }
         }
     }
