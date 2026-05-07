@@ -6,14 +6,13 @@ final class HomeOverlay: SKNode {
     static let playButtonName = "playButton"
     static let leaderboardButtonName = "leaderboardButton"
     static let connectGameCenterButtonName = "connectGameCenterButton"
-    private static let basePanelHeight: CGFloat = 370
-    private static let panelHeightWithAccount: CGFloat = 398
+    private static let basePanelHeight: CGFloat = 342
+    private static let panelHeightWithAccount: CGFloat = 370
 
     private let backgroundNode: SKShapeNode
     private let panelNode: SKShapeNode
     private let titleLabel: SKLabelNode
     private let statusLabel: SKLabelNode
-    private let authDebugLabel: SKLabelNode
     private let accountLabel: SKLabelNode
     private let playButtonContainer: SKShapeNode
     private let leaderboardButtonContainer: SKShapeNode
@@ -85,20 +84,11 @@ final class HomeOverlay: SKNode {
         statusLabel.position = CGPoint(x: cx, y: cy + 76)
         statusLabel.zPosition = 301
 
-        authDebugLabel = SKLabelNode(fontNamed: "Helvetica")
-        authDebugLabel.text = isGCAuthenticated ? "GC Auth: YES" : "GC Auth: NO"
-        authDebugLabel.fontSize = 13
-        authDebugLabel.fontColor = isGCAuthenticated
-            ? SKColor.green.withAlphaComponent(0.8)
-            : SKColor.red.withAlphaComponent(0.8)
-        authDebugLabel.position = CGPoint(x: cx, y: cy + 48)
-        authDebugLabel.zPosition = 301
-
         accountLabel = SKLabelNode(fontNamed: "Helvetica")
         accountLabel.text = accountName.map { "Connected as \($0)" } ?? ""
         accountLabel.fontSize = 14
         accountLabel.fontColor = SKColor.cyan.withAlphaComponent(0.85)
-        accountLabel.position = CGPoint(x: cx, y: cy + 24)
+        accountLabel.position = CGPoint(x: cx, y: cy + 48)
         accountLabel.zPosition = 301
 
         playButtonContainer = HomeOverlay.makeButton(
@@ -107,7 +97,7 @@ final class HomeOverlay: SKNode {
             textColor: .systemGreen,
             width: buttonWidth,
             height: buttonHeight,
-            center: CGPoint(x: cx, y: cy - 30)
+            center: CGPoint(x: cx, y: cy - 16)
         )
 
         leaderboardButtonContainer = HomeOverlay.makeButton(
@@ -116,7 +106,7 @@ final class HomeOverlay: SKNode {
             textColor: .orange,
             width: buttonWidth,
             height: buttonHeight,
-            center: CGPoint(x: cx, y: cy - 100)
+            center: CGPoint(x: cx, y: cy - 86)
         )
 
         connectGameCenterButtonContainer = HomeOverlay.makeButton(
@@ -125,7 +115,7 @@ final class HomeOverlay: SKNode {
             textColor: .cyan,
             width: buttonWidth,
             height: buttonHeight,
-            center: CGPoint(x: cx, y: cy - 170)
+            center: CGPoint(x: cx, y: cy - 156)
         )
 
         super.init()
@@ -134,7 +124,6 @@ final class HomeOverlay: SKNode {
         addChild(panelNode)
         addChild(titleLabel)
         addChild(statusLabel)
-        addChild(authDebugLabel)
         if accountName != nil {
             addChild(accountLabel)
         }

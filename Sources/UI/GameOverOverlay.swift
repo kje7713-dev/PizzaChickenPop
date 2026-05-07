@@ -10,7 +10,6 @@ class GameOverOverlay: SKNode {
     private let gcStatusLabel: SKLabelNode
     private let leaderboardButtonContainer: SKShapeNode
     private let connectGCButtonContainer: SKShapeNode
-    private let gcDebugLabel: SKLabelNode
     private let restartButtonContainer: SKShapeNode
 
     /// Name used for hit-testing the leaderboard button in touchesBegan
@@ -131,17 +130,14 @@ class GameOverOverlay: SKNode {
             zPosition: 201
         )
 
-        // Debug auth state line (subtle, small)
-        gcDebugLabel = SKLabelNode(fontNamed: "Helvetica")
-        gcDebugLabel.text = isGCAuthenticated ? "GC Auth: YES" : "GC Auth: NO"
-        gcDebugLabel.fontSize = 13
-        gcDebugLabel.fontColor = isGCAuthenticated ? SKColor.green.withAlphaComponent(0.7)
-                                                   : SKColor.red.withAlphaComponent(0.7)
-        gcDebugLabel.position = CGPoint(x: cx, y: cy - 215)
-        gcDebugLabel.zPosition = 201
-
         // Restart button container with large hit area
         let promptText = customMessage != nil ? "Tap to Continue" : "Tap to Restart"
+        let restartButtonY: CGFloat
+        if showLeaderboardButton {
+            restartButtonY = isGCAuthenticated ? cy - 190 : cy - 250
+        } else {
+            restartButtonY = cy - 190
+        }
         restartButtonContainer = GameOverOverlay.makeButton(
             text: promptText,
             fontSize: 24,
@@ -149,7 +145,7 @@ class GameOverOverlay: SKNode {
             buttonName: GameOverOverlay.restartButtonName,
             width: 300,
             height: 50,
-            center: CGPoint(x: cx, y: cy - 260),
+            center: CGPoint(x: cx, y: restartButtonY),
             zPosition: 201
         )
 
@@ -163,7 +159,6 @@ class GameOverOverlay: SKNode {
         if showLeaderboardButton { addChild(leaderboardButtonContainer) }
         if showLeaderboardButton {
             if !isGCAuthenticated { addChild(connectGCButtonContainer) }
-            addChild(gcDebugLabel)
         }
         addChild(restartButtonContainer)
 
