@@ -1,4 +1,5 @@
 import SpriteKit
+import UIKit
 
 /// Main game scene for PizzaChicken - Timed 30s mode
 class GameScene: SKScene {
@@ -8,9 +9,16 @@ class GameScene: SKScene {
     private var pizzaNode: SKSpriteNode!
     private var spicyWingNodes: [SKSpriteNode] = []
     private var hudNode: HUDNode!
+    private var homeOverlay: HomeOverlay?
     private var gameOverOverlay: GameOverOverlay?
 
-    // MARK: - Game Over Button Names (cached set for tap-detection)
+    // MARK: - Button Names (cached sets for tap-detection)
+    private static let homeButtonNames: Set<String> = [
+        HomeOverlay.playButtonName,
+        HomeOverlay.leaderboardButtonName,
+        HomeOverlay.connectGameCenterButtonName
+    ]
+
     private static let gameOverButtonNames: Set<String> = [
         GameOverOverlay.leaderboardButtonName,
         GameOverOverlay.connectGameCenterButtonName,
@@ -25,7 +33,7 @@ class GameScene: SKScene {
     private let levelWinSound = SoundManager.shared.soundAction(name: "level_win")
     
     // MARK: - Game State
-    private var gameState: GameState = .ready
+    private var gameState: GameState = .home
     private var currentLevel: Int = 1
     private var score: Int = 0 {
         didSet {
@@ -139,14 +147,18 @@ class GameScene: SKScene {
             GameCenterManager.shared.authenticate(from: vc)
         }
 
-        // Observe Game Center auth changes so the game-over overlay can refresh
+        // Observe Game Center status changes so visible overlays refresh immediately.
         gcAuthObserver = NotificationCenter.default.addObserver(
             forName: .gameCenterAuthDidChange,
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            self?.refreshHomeOverlayIfNeeded()
             self?.refreshGameOverOverlayIfNeeded()
         }
+
+        showHomeOverlay()
+        updateHUDVisibility()
 
         // Start preloading interstitial ad early so it is ready by game over
         AdManager.shared.loadAd()
@@ -312,12 +324,26 @@ class GameScene: SKScene {
         let location = touch.location(in: self)
         
         switch gameState {
-        case .ready:
-            // First tap starts the game
-            startGame()
-            targetPosition = location
-            recordClick()
-            
+        case .home:
+            let tappedNodes = nodes(at: location)
+            let buttonName = firstNamedNode(in: tappedNodes, matching: GameScene.homeButtonNames)
+
+            switch buttonName {
+            case HomeOverlay.playButtonName:
+                print("[GameScene] home tap -> play")
+                beginFreshRun()
+            case HomeOverlay.leaderboardButtonName:
+                print("[GameScene] home tap -> leaderboard")
+                guard let vc = presentingViewController() else { return }
+                GameCenterManager.shared.showLeaderboard(from: vc)
+            case HomeOverlay.connectGameCenterButtonName:
+                print("[GameScene] home tap -> connect game center")
+                guard let vc = presentingViewController() else { return }
+                GameCenterManager.shared.forceReconnect(from: vc)
+            default:
+                print("[GameScene] home tap -> no actionable button")
+            }
+
         case .playing:
             // Set target position for chicken to move toward
             targetPosition = location
@@ -395,20 +421,63 @@ class GameScene: SKScene {
     }
     
     // MARK: - Game Flow
-    private func startGame() {
+    private func showHomeOverlay() {
+        homeOverlay?.removeFromParent()
+        let overlay = makeHomeOverlay()
+        homeOverlay = overlay
+        addChild(overlay)
+    }
+
+    private func makeHomeOverlay() -> HomeOverlay {
+        HomeOverlay(
+            size: size,
+            title: "Pizza Chicken Pop",
+            statusText: GameCenterManager.shared.lastSubmissionMessage,
+            isGCAuthenticated: GameCenterManager.shared.isAuthenticated,
+            accountName: GameCenterManager.shared.playerDisplayName
+        )
+    }
+
+    private func refreshHomeOverlayIfNeeded() {
+        guard gameState == .home else { return }
+        showHomeOverlay()
+    }
+
+    private func updateHUDVisibility() {
+        hudNode?.isHidden = gameState == .home
+    }
+
+    private func presentingViewController() -> UIViewController? {
+        view?.window?.rootViewController
+    }
+
+    private func startCurrentLevel() {
         gameState = .playing
+        targetPosition = nil
         score = 0
         spicyWingHits = 0
-        
+        isBonusRound = false
+        pizzaVelocity = .zero
+
         // Set time based on level
         gameDuration = levelDuration
         timeRemaining = gameDuration
-        
+
         lastUpdateTime = 0
+        clickTimestamps.removeAll()
+        removeSpicyWing()
+
+        chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        chickenNode.alpha = 1.0
+        chickenNode.setScale(0.20)
+
         hudNode.updateTime(Int(ceil(timeRemaining)))
+        hudNode.updateRunScore(runScore)
         hudNode.updateLevel(currentLevel)
         hudNode.updateLives(livesRemaining)
-        
+        spawnPizza()
+        updateHUDVisibility()
+
         // Start continuous pizza movement for level 2 and above
         if currentLevel >= 2 {
             initPizzaVelocity()
@@ -416,6 +485,20 @@ class GameScene: SKScene {
 
         // Preload interstitial ad now that the game is starting
         AdManager.shared.loadAd()
+    }
+
+    private func beginFreshRun() {
+        homeOverlay?.removeFromParent()
+        homeOverlay = nil
+        gameOverOverlay?.removeFromParent()
+        gameOverOverlay = nil
+
+        currentLevel = 1
+        runScore = 0
+        hudNode.updateBest(scoreManager.bestScore)
+        hudNode.updateScore(0)
+        hudNode.updateRunScore(0)
+        startCurrentLevel()
     }
     
     private func checkLevelComplete() {
@@ -465,34 +548,7 @@ class GameScene: SKScene {
         } else {
             // Advance to next level
             currentLevel += 1
-            
-            // Reset state for new level
-            gameState = .ready
-            score = 0
-            spicyWingHits = 0
-            
-            // Set time based on level
-            gameDuration = levelDuration
-            timeRemaining = gameDuration
-            
-            hudNode.updateScore(0)
-            hudNode.updateTime(Int(ceil(timeRemaining)))
-            hudNode.updateLevel(currentLevel)
-            hudNode.updateLives(livesRemaining)
-            
-            // Reset click tracking
-            clickTimestamps.removeAll()
-            
-            // Reset chicken position and visibility
-            chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
-            chickenNode.alpha = 1.0
-            chickenNode.setScale(0.20)
-            
-            // Remove any spicy wing
-            removeSpicyWing()
-            
-            // Respawn pizza
-            spawnPizza()
+            startCurrentLevel()
         }
     }
     
@@ -557,6 +613,7 @@ class GameScene: SKScene {
         gameState = .gameOver
         targetPosition = nil
         isBonusRound = false
+        updateHUDVisibility()
 
         // Update best score using total run score
         scoreManager.checkAndUpdateBestScore(runScore)
@@ -601,40 +658,7 @@ class GameScene: SKScene {
     }
 
     private func restartGame() {
-        // Remove overlay
-        gameOverOverlay?.removeFromParent()
-        gameOverOverlay = nil
-        
-        // Reset state to level 1
-        currentLevel = 1
-        gameState = .ready
-        score = 0
-        runScore = 0
-        isBonusRound = false
-        spicyWingHits = 0
-        
-        gameDuration = 30.0
-        timeRemaining = gameDuration
-        
-        hudNode.updateScore(0)
-        hudNode.updateRunScore(0)
-        hudNode.updateTime(Int(ceil(timeRemaining)))
-        hudNode.updateLevel(currentLevel)
-        hudNode.updateLives(livesRemaining)
-        
-        // Reset click tracking
-        clickTimestamps.removeAll()
-        
-        // Reset chicken position and visibility
-        chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        chickenNode.alpha = 1.0
-        chickenNode.setScale(0.20)
-        
-        // Remove any spicy wing
-        removeSpicyWing()
-        
-        // Respawn pizza
-        repositionPizza()
+        beginFreshRun()
     }
     
     // MARK: - Update Loop
@@ -891,11 +915,14 @@ class GameScene: SKScene {
         // Reposition HUD
         hudNode?.repositionForSize(size)
         
-        // Reposition chicken if in ready state
-        if gameState == .ready, let chickenNode = chickenNode {
+        // Reposition chicken if on the home screen
+        if gameState == .home, let chickenNode = chickenNode {
             chickenNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         }
-        
+
+        refreshHomeOverlayIfNeeded()
+        refreshGameOverOverlayIfNeeded()
+
         // Reposition pizza if needed
         if pizzaNode != nil {
             repositionPizza()
