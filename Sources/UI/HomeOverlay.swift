@@ -6,6 +6,8 @@ final class HomeOverlay: SKNode {
     static let playButtonName = "playButton"
     static let leaderboardButtonName = "leaderboardButton"
     static let connectGameCenterButtonName = "connectGameCenterButton"
+    private static let basePanelHeight: CGFloat = 370
+    private static let panelHeightWithAccount: CGFloat = 398
 
     private let backgroundNode: SKShapeNode
     private let panelNode: SKShapeNode
@@ -52,7 +54,9 @@ final class HomeOverlay: SKNode {
         let panelWidth = min(size.width - 8, 360)
         let buttonWidth = min(320, panelWidth - 12)
         let buttonHeight: CGFloat = 56
-        let panelHeight: CGFloat = accountName == nil ? 370 : 398
+        let panelHeight = accountName == nil
+            ? HomeOverlay.basePanelHeight
+            : HomeOverlay.panelHeightWithAccount
 
         backgroundNode = SKShapeNode(rectOf: size)
         backgroundNode.fillColor = SKColor.black.withAlphaComponent(0.28)

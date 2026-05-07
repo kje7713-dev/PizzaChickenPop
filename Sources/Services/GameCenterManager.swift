@@ -159,8 +159,6 @@ final class GameCenterManager: NSObject {
             return
         }
         print("[GameCenter] Presenting leaderboard UI")
-        lastSubmissionMessage = "Game Center connected"
-        postStateChangeNotification()
         let gcVC = GKGameCenterViewController(leaderboardID: leaderboardID,
                                               playerScope: .global,
                                               timeScope: .allTime)
