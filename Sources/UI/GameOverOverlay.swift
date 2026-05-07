@@ -132,11 +132,13 @@ class GameOverOverlay: SKNode {
 
         // Restart button container with large hit area
         let promptText = customMessage != nil ? "Tap to Continue" : "Tap to Restart"
+        let restartButtonDefaultY = cy - 190
+        let restartButtonBelowConnectY = cy - 250
         let restartButtonY: CGFloat
         if showLeaderboardButton {
-            restartButtonY = isGCAuthenticated ? cy - 190 : cy - 250
+            restartButtonY = isGCAuthenticated ? restartButtonDefaultY : restartButtonBelowConnectY
         } else {
-            restartButtonY = cy - 190
+            restartButtonY = restartButtonDefaultY
         }
         restartButtonContainer = GameOverOverlay.makeButton(
             text: promptText,
