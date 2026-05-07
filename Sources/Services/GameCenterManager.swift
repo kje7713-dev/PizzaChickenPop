@@ -2,7 +2,7 @@ import Foundation
 import GameKit
 import UIKit
 
-/// Posted on the main queue whenever Game Center auth state changes.
+/// Posted on the main queue whenever Game Center auth or visible status changes.
 extension Notification.Name {
     static let gameCenterAuthDidChange = Notification.Name("GameCenterAuthDidChange")
 }
@@ -14,6 +14,7 @@ final class GameCenterManager: NSObject {
 
     private let leaderboardID = "ABC123"
     private(set) var isAuthenticated = false
+    private(set) var playerDisplayName: String?
     private(set) var lastSubmissionSucceeded = false
     private(set) var lastSubmissionMessage = "Game Center auth not started"
 
@@ -23,6 +24,12 @@ final class GameCenterManager: NSObject {
 
     // MARK: - Authentication
 
+    private func postStateChangeNotification() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .gameCenterAuthDidChange, object: nil)
+        }
+    }
+
     func authenticate(from viewController: UIViewController?) {
         print("[GameCenter] authenticate() called – hasConfiguredHandler=\(hasConfiguredAuthenticateHandler)")
         guard !hasConfiguredAuthenticateHandler else {
@@ -31,6 +38,7 @@ final class GameCenterManager: NSObject {
         }
         hasConfiguredAuthenticateHandler = true
         lastSubmissionMessage = "Game Center sign-in required"
+        postStateChangeNotification()
 
         let localPlayer = GKLocalPlayer.local
 
@@ -40,12 +48,16 @@ final class GameCenterManager: NSObject {
             if let gcVC = gcVC {
                 print("[GameCenter] Sign-in UI returned – attempting to present")
                 self.lastSubmissionMessage = "Presenting Game Center sign-in"
+                self.postStateChangeNotification()
                 if let vc = viewController {
                     vc.present(gcVC, animated: true)
                     print("[GameCenter] Sign-in UI presented")
                 } else {
                     print("[GameCenter] Sign-in UI returned but viewController is nil – cannot present")
+                    self.isAuthenticated = false
+                    self.playerDisplayName = nil
                     self.lastSubmissionMessage = "Game Center sign-in incomplete"
+                    self.postStateChangeNotification()
                 }
                 return
             }
@@ -53,10 +65,9 @@ final class GameCenterManager: NSObject {
             if let error = error {
                 print("[GameCenter] Auth error: \(error.localizedDescription)")
                 self.isAuthenticated = false
+                self.playerDisplayName = nil
                 self.lastSubmissionMessage = "Game Center unavailable"
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: .gameCenterAuthDidChange, object: nil)
-                }
+                self.postStateChangeNotification()
                 return
             }
 
@@ -65,25 +76,26 @@ final class GameCenterManager: NSObject {
             self.isAuthenticated = authenticated
 
             if authenticated {
+                self.playerDisplayName = localPlayer.displayName
                 self.lastSubmissionMessage = "Game Center connected"
                 print("[GameCenter] Auth succeeded – player: \(localPlayer.displayName)")
             } else {
+                self.playerDisplayName = nil
                 self.lastSubmissionMessage = "Game Center sign-in incomplete"
                 print("[GameCenter] Auth callback completed but player is not authenticated")
             }
 
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .gameCenterAuthDidChange, object: nil)
-            }
+            self.postStateChangeNotification()
         }
     }
 
     /// Resets the handler guard and re-runs authentication so the user can
-    /// manually trigger the Game Center sign-in UI from the game-over screen.
+    /// manually trigger the Game Center sign-in UI from the home or game-over screen.
     func forceReconnect(from viewController: UIViewController?) {
         print("[GameCenter] forceReconnect() called – resetting handler flag")
         hasConfiguredAuthenticateHandler = false
         lastSubmissionMessage = "Game Center sign-in required"
+        postStateChangeNotification()
         authenticate(from: viewController)
     }
 
@@ -95,6 +107,7 @@ final class GameCenterManager: NSObject {
             lastSubmissionSucceeded = false
             lastSubmissionMessage = "Score not submitted: Game Center not connected"
             print("[GameCenter] Skipping score submission – not authenticated")
+            postStateChangeNotification()
             return
         }
         print("[GameCenter] Submitting score \(score) to leaderboard '\(leaderboardID)'")
@@ -112,6 +125,7 @@ final class GameCenterManager: NSObject {
                         self?.lastSubmissionMessage = "Score submitted"
                         print("[GameCenter] Score \(score) submitted successfully")
                     }
+                    self?.postStateChangeNotification()
                 }
             }
         } else {
@@ -128,6 +142,7 @@ final class GameCenterManager: NSObject {
                         self?.lastSubmissionMessage = "Score submitted"
                         print("[GameCenter] Score \(score) submitted successfully (legacy)")
                     }
+                    self?.postStateChangeNotification()
                 }
             }
         }
@@ -140,6 +155,7 @@ final class GameCenterManager: NSObject {
         guard isAuthenticated else {
             lastSubmissionMessage = "Cannot open leaderboard: Game Center not connected"
             print("[GameCenter] Cannot show leaderboard – not authenticated")
+            postStateChangeNotification()
             return
         }
         print("[GameCenter] Presenting leaderboard UI")
